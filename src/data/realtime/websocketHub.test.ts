@@ -20,12 +20,23 @@ import type { ConnectionStatus } from '../repository.ts';
 import type { RealtimeSnapshot } from './contract.ts';
 import { WebSocketRealtimeHub } from './websocketHub.ts';
 
-const PORT = 8791 + (process.pid % 100);
-const URL = `ws://127.0.0.1:${PORT}`;
+/**
+ * Port dipilih oleh sistem operasi (0 = terserah OS), lalu dibaca dari
+ * keluaran server.
+ *
+ * Sebelumnya port dihitung dari PID proses tes (`8791 + pid % 100`). Cara itu
+ * bisa bentrok dengan proses lain, dan karena port dipakai di `before()`,
+ * satu bentrokan membuat SELURUH berkas ini gagal sekaligus — terlihat seperti
+ * tujuh bug padahal satu masalah port. Menyerahkannya ke OS menghapus seluruh
+ * kelas masalah itu, dan membuat berkas ini aman dijalankan bersamaan.
+ */
+let PORT = 0;
+let URL = '';
 const TOKO = 'store-demo';
 
 let server: ChildProcess | null = null;
 let logServer = '';
+let serverKeluar = false;
 
 /** Menunggu satu peristiwa pada soket, dengan batas waktu. */
 function tunggu(target: EventTarget, jenis: string, ms = 4_000): Promise<unknown> {
@@ -69,8 +80,28 @@ async function serverSiap(port: number, batasMs = 8_000): Promise<void> {
   );
 }
 
+/**
+ * Menunggu server mengumumkan port yang dipilih OS.
+ *
+ * Server mencatat `listening ws://localhost:PORT/?storeId=<id>`; baris itulah
+ * satu-satunya sumber kebenaran tentang port yang benar-benar dipakai.
+ */
+async function tungguPort(batasMs = 8_000): Promise<number> {
+  const batas = Date.now() + batasMs;
+  const pola = /listening ws:\/\/[^:]+:(\d+)\//;
+  while (Date.now() < batas) {
+    const cocok = pola.exec(logServer);
+    if (cocok?.[1]) return Number(cocok[1]);
+    if (serverKeluar) break;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(
+    `server tidak mengumumkan port dalam ${batasMs} ms\n--- keluaran server ---\n${logServer || '(kosong)'}`,
+  );
+}
+
 before(async () => {
-  server = spawn('node', ['tools/realtime-server.mjs', '--port', String(PORT)], {
+  server = spawn('node', ['tools/realtime-server.mjs', '--port', '0'], {
     cwd: process.cwd(),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -81,8 +112,12 @@ before(async () => {
     logServer += b.toString('utf8');
   });
   server.on('exit', (kode) => {
+    serverKeluar = true;
     logServer += `\n[server keluar dengan kode ${kode}]`;
   });
+
+  PORT = await tungguPort();
+  URL = `ws://127.0.0.1:${PORT}`;
   await serverSiap(PORT);
 });
 

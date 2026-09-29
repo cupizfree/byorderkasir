@@ -12,7 +12,7 @@
 
 import { useMemo, useState } from 'preact/hooks';
 
-import { canCancel, canTransition, isPaid } from '../../domain/orders.ts';
+import { canCallQueue, canCancel, isPaid } from '../../domain/orders.ts';
 import { formatRupiah } from '../../domain/money.ts';
 import { formatTime, humanizeDuration } from '../../domain/time.ts';
 import type { Order, OrderStatus } from '../../domain/types.ts';
@@ -225,9 +225,9 @@ export function OrdersView({
                       </Button>
                     ) : null}
 
-                    {canTransition(o.status, 'ready') ? (
+                    {canCallQueue(o.status) ? (
                       <Button
-                        variant="outline"
+                        variant={o.callCount > 0 ? 'secondary' : 'outline'}
                         size="sm"
                         icon="bell"
                         onClick={() => void jalankan(o.id, () => onCall(o.id))}

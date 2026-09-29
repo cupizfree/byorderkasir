@@ -159,7 +159,7 @@ Biarkan papan antrian terbuka, lalu ubah status sebuah order dari tab admin. Pap
 ### Perintah lain
 
 ```bash
-npm run test        # 236 tes, tanpa kerangka pengujian tambahan
+npm run test        # 238 tes, tanpa kerangka pengujian tambahan
 npm run typecheck   # pemeriksaan tipe
 npm run check       # keduanya sekaligus
 npm run build       # build produksi ke dist/
@@ -309,7 +309,7 @@ Satu berkas font memakan hampir setengahnya, karena diunduh utuh untuk seluruh r
 npm run test
 ```
 
-**236 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
+**238 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
 
 - Perhitungan uang: pajak, pembulatan, kode unik, ringkasan laporan
 - Kode unik hanya diberikan untuk QRIS dan transfer — tunai tidak
@@ -320,6 +320,7 @@ npm run test
 - Payload QRIS dinamis: nominal tersisip, pemeriksaan jumlah
 - Rentang tanggal dan format waktu
 - **Izin per peran:** siapa boleh membuka layar apa, dan ke mana dialihkan kalau tidak boleh
+- **Aturan panggil antrian:** hanya order yang sudah siap boleh dipanggil, dan syaratnya tidak boleh tertukar dengan syarat transisi status
 - **Stok:** saldo sejalan dengan riwayat pergerakan, ambang peringatan, arah dan alasan
 - **Antrean tulis luring:** urutan kirim, percobaan ulang, batas percobaan, tulis yang gagal
 - **CSV:** pemisah kolom, kutip ganda, awalan anti-rumus, angka negatif tetap angka
@@ -352,7 +353,7 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 - [x] Riwayat stok & peringatan bahan menipis
 - [x] Ekspor laporan ke CSV dan Excel
 - [x] Mode luring dengan antrean tulis
-- [x] 236 tes, pemeriksaan tipe bersih
+- [x] 238 tes, pemeriksaan tipe bersih
 
 **Berikutnya**
 

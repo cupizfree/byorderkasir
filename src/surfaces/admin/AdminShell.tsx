@@ -14,6 +14,7 @@ import type { JSX } from 'preact';
 import { ConnectionPill, LoadingBlock } from '../../ui/components.tsx';
 import { Icon, type IconName } from '../../ui/icons.tsx';
 import {
+  bootstrapAdmin,
   canView,
   connectRealtime,
   loadCatalog,
@@ -89,7 +90,16 @@ export function AdminShell() {
   useEffect(() => {
     void (async () => {
       await restoreSession();
-      await Promise.all([loadSettings(), loadCatalog(), loadStock()]);
+      // Order ikut dimuat di sini, bukan hanya saat tab diklik.
+      //
+      // Tanpa ini, membuka atau memuat ulang halaman langsung di layar Dapur
+      // atau Order menampilkan papan kosong: juru masak membaca "belum ada
+      // pesanan baru" padahal pesanannya ada, dan pesanan itu tidak pernah
+      // dimasak. Bug ini lolos dari 236 tes karena tidak ada tes yang
+      // merender komponen — hanya terlihat saat halamannya benar-benar dibuka.
+      await bootstrapAdmin(
+        tab === 'analitik' ? aksi.filterPeriode(periode) : aksi.filterHariIni(),
+      );
       simpanPengaturanKeCache(settings.value);
       setSiap(true);
     })();

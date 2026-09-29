@@ -213,13 +213,18 @@ export async function loadDisplayOrder(): Promise<void> {
 
 /**
  * Muat semua data yang dibutuhkan surface admin/kasir.
+ *
  * Dipanggil sekali saat mount; selebihnya realtime yang menjaga kesegaran.
+ *
+ * `filter` diteruskan ke daftar order karena layar admin tidak pernah ingin
+ * seluruh riwayat: kasir dan dapur hanya butuh hari ini, analitik punya
+ * rentangnya sendiri.
  */
-export async function bootstrapAdmin(): Promise<void> {
+export async function bootstrapAdmin(filter?: OrderFilter): Promise<void> {
   loading.value = true;
   lastError.value = null;
   try {
-    await Promise.all([loadSettings(), loadCatalog(), loadOrders()]);
+    await Promise.all([loadSettings(), loadCatalog(), loadStock(), loadOrders(filter)]);
     dataRevision.value += 1;
   } catch (err) {
     lastError.value = messageOf(err);

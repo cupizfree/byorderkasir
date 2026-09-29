@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   ORDER_FLOW,
   awaitingPayment,
+  canCallQueue,
   canCancel,
   canStartCooking,
   canTransition,
@@ -102,6 +103,31 @@ test('pembatalan hanya dari status aktif', () => {
   assert.ok(canCancel('ready'));
   assert.equal(canCancel('completed'), false, 'order selesai tidak bisa dibatalkan');
   assert.equal(canCancel('cancelled'), false);
+});
+
+test('yang boleh dipanggil hanya order yang sudah siap', () => {
+  // Papan antrian hanya menyiarkan order `ready` yang punya `calledAt`. Kalau
+  // layar kasir memakai syarat lain — misalnya `canTransition(status, 'ready')`,
+  // yang justru benar hanya untuk `processing` — tombol Panggil tidak pernah
+  // muncul saat pesanan benar-benar siap, dan pengumuman suara tidak berbunyi.
+  assert.ok(canCallQueue('ready'), 'order siap harus bisa dipanggil');
+  assert.equal(canCallQueue('pending'), false, 'order baru belum dipanggil');
+  assert.equal(canCallQueue('processing'), false, 'masih dimasak, belum dipanggil');
+  assert.equal(canCallQueue('completed'), false);
+  assert.equal(canCallQueue('cancelled'), false);
+});
+
+test('syarat panggil tidak boleh disamakan dengan syarat transisi ke siap', () => {
+  // Keduanya pernah tertukar. Dikunci di sini supaya tidak terulang.
+  for (const s of ORDER_FLOW) {
+    if (canCallQueue(s)) {
+      assert.equal(
+        canTransition(s, 'ready'),
+        false,
+        `status "${s}" memakai syarat transisi, bukan syarat panggil`,
+      );
+    }
+  }
 });
 
 test('completed dan cancelled bersifat terminal', () => {

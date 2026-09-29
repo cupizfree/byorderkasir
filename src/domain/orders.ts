@@ -55,6 +55,22 @@ export function canCancel(status: OrderStatus): boolean {
   return TRANSITIONS[status].includes('cancelled');
 }
 
+/**
+ * Order yang boleh dipanggil ke papan antrian.
+ *
+ * Hanya yang sudah **siap** — itulah saat pelanggan memang perlu dipanggil.
+ *
+ * Sebelumnya layar kasir memakai `canTransition(status, 'ready')` sebagai
+ * syarat, yang justru bernilai benar hanya untuk order `processing`. Akibatnya
+ * tombol "Panggil" tidak pernah muncul pada order yang sudah siap, padahal
+ * papan antrian hanya menyiarkan order siap yang punya `calledAt`. Alur yang
+ * paling wajar — pesanan siap, lalu panggil pelanggan — jadi tidak bisa
+ * dijalankan sama sekali, dan pengumuman suara tidak pernah berbunyi.
+ */
+export function canCallQueue(status: OrderStatus): boolean {
+  return status === 'ready';
+}
+
 /** Masih perlu dikerjakan dapur? */
 export function isActive(status: OrderStatus): boolean {
   return status === 'pending' || status === 'processing';
