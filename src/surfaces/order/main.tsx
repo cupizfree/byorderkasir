@@ -17,6 +17,7 @@ import { useCallback, useEffect, useState } from 'preact/hooks';
 import '../../styles/app.css';
 import { ErrorBlock, LoadingBlock } from '../../ui/components.tsx';
 import { getRepository } from '../../data/index.ts';
+import { loadRepository } from '../../data/load.ts';
 import type { DiningTable, Order, OrderItem } from '../../domain/types.ts';
 import {
   bootstrapOrder,
@@ -38,10 +39,28 @@ function tokenFromUrl(): string {
   return (params.get('t') ?? params.get('table') ?? '').trim();
 }
 
+/**
+ * Kunci idempoten untuk satu niat pesan.
+ *
+ * `crypto.randomUUID` hanya ada di konteks aman (https atau localhost). Di
+ * http biasa ia tidak ada, jadi ada cadangan sederhana — yang penting
+ * nilainya unik, bukan tidak bisa ditebak.
+ */
+function newClientKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `k-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function App() {
   const [table, setTable] = useState<DiningTable | null>(null);
   const [tokenSelesai, setTokenSelesai] = useState(false);
   const [submitted, setSubmitted] = useState<Order | null>(null);
+  // Satu kunci per niat pesan. Kalau pelanggan menekan "Kirim" dua kali karena
+  // jaringannya lambat, kiriman kedua mengembalikan order yang SAMA — bukan
+  // membuat pesanan kedua yang tidak pernah dipesan.
+  const [clientKey, setClientKey] = useState(newClientKey);
 
   const token = tokenFromUrl();
 
@@ -100,6 +119,7 @@ function App() {
       items: input.items,
       discount: { type: 'none', value: 0 },
       paymentMethod: input.paymentMethod,
+      clientKey,
     });
 
     setSubmitted(order);
@@ -136,10 +156,16 @@ function App() {
       table={table}
       onSubmit={kirim}
       submitted={submitted}
-      onNewOrder={() => setSubmitted(null)}
+      onNewOrder={() => {
+        setSubmitted(null);
+        setClientKey(newClientKey());
+      }}
     />
   );
 }
 
 const root = document.getElementById('app');
-if (root) render(<App />, root);
+if (root) {
+  await loadRepository();
+  render(<App />, root);
+}

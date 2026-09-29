@@ -24,6 +24,7 @@ import {
   tables,
 } from '../../state/store.ts';
 import { currentAdapter, getRepository, MockRepository } from '../../data/index.ts';
+import { loadRepository } from '../../data/load.ts';
 
 interface Surface {
   href: string;
@@ -241,4 +242,7 @@ function App() {
 }
 
 const root = document.getElementById('app');
-if (root) render(<App />, root);
+if (root) {
+  await loadRepository();
+  render(<App />, root);
+}

@@ -10,6 +10,7 @@ import { useEffect } from 'preact/hooks';
 
 import '../../styles/app.css';
 import { ErrorBlock, LoadingBlock } from '../../ui/components.tsx';
+import { loadRepository } from '../../data/load.ts';
 import {
   connectRealtime,
   lastError,
@@ -62,4 +63,7 @@ function App() {
 }
 
 const root = document.getElementById('app');
-if (root) render(<App />, root);
+if (root) {
+  await loadRepository();
+  render(<App />, root);
+}

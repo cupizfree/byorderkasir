@@ -29,12 +29,15 @@ export function getRepository(): Repository {
 
   switch (currentAdapter()) {
     case 'supabase': {
-      // Diimpor dinamis supaya bundel mock-only tidak ikut membawa SDK Supabase.
-      // Kalau adapter ini dipilih tanpa kredensial, pesannya harus jelas.
+      // Sampai di sini berarti adapter Supabase belum dimuat. Penyebab paling
+      // umum: entry-nya lupa memanggil `loadRepository()`. Pesannya dibuat
+      // menunjuk ke hal itu, bukan sekadar menyebut kredensial.
       throw new Error(
-        'Adapter Supabase belum diaktifkan. Isi VITE_SUPABASE_URL dan ' +
-          'VITE_SUPABASE_ANON_KEY, lalu jalankan skema di supabase/schema.sql. ' +
-          'Untuk menjalankan tanpa backend, pakai VITE_DATA_ADAPTER=mock.',
+        'Adapter Supabase belum dimuat. Pastikan entry memanggil ' +
+          '`await loadRepository()` sebelum render, lalu isi VITE_SUPABASE_URL ' +
+          'dan VITE_SUPABASE_ANON_KEY di berkas .env, dan jalankan skema di ' +
+          'supabase/schema.sql. Untuk berjalan tanpa backend, pakai ' +
+          'VITE_DATA_ADAPTER=mock.',
       );
     }
     case 'mock':

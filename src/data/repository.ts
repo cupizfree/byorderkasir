@@ -68,6 +68,18 @@ export interface CreateOrderInput {
   cashReceived?: number;
   /** Untuk split: rincian per metode. */
   splits?: Payment['splits'];
+  /**
+   * Kunci idempoten, diisi pemanggil.
+   *
+   * Antrean tulis luring mengirim ulang tulisan yang gagal. Tanpa kunci ini,
+   * kiriman ulang membuat order KEDUA untuk satu niat — dan itu terjadi
+   * justru pada kasus yang paling sulit dilihat: koneksi putus setelah order
+   * tersimpan di server tetapi sebelum jawabannya sampai ke kasir.
+   *
+   * Adapter Supabase menegakkannya lewat indeks unik `(store_id, client_key)`.
+   * Adapter mock mengabaikannya.
+   */
+  clientKey?: string;
 }
 
 export interface MenuInput {

@@ -6,8 +6,8 @@
 
 **POS + self-order untuk kafe & resto. Satu basis kode, lima layar, realtime sungguhan.**
 
-[![Tes](https://img.shields.io/badge/tes-120%20lolos-16a34a?style=flat-square)](src/domain)
-[![Bundle](https://img.shields.io/badge/bundle-73%20KB%20gzip-2563eb?style=flat-square)](#-ukuran-yang-dikirim-ke-pengguna)
+[![Tes](https://img.shields.io/badge/tes-267%20lolos-16a34a?style=flat-square)](src/domain)
+[![Bundle](https://img.shields.io/badge/bundle-72%2C3%20KB%20gzip-2563eb?style=flat-square)](#-ukuran-yang-dikirim-ke-pengguna)
 [![Tumpukan](https://img.shields.io/badge/Preact%20%2B%20Tailwind%204%20%2B%20Vite-0ea5e9?style=flat-square)](#-teknologi-dan-alasannya)
 [![Lisensi](https://img.shields.io/badge/lisensi-MIT-64748b?style=flat-square)](LICENSE)
 
@@ -26,11 +26,12 @@ Dibangun sebagai pengganti modern dari aplikasi POS berbasis Google Apps Script 
 | | Aplikasi lama | byorderkasir |
 |---|---|---|
 | **Realtime** | Polling tiap 6 detik | Siaran antar-layar, tanpa polling |
-| **Harga** | Dihitung di browser pelanggan | Dihitung di lapisan domain, browser hanya menampilkan |
-| **PIN admin** | Tertanam di kode yang dikirim ke browser | Sesi dengan masa berlaku, tidak ada PIN di klien |
+| **Backend** | Google Sheets + Apps Script (plafon 30 eksekusi bersamaan) | Opsional: Postgres + RLS, atau tanpa backend sama sekali |
+| **Harga** | Dihitung di browser pelanggan | Lapisan domain; di mode backend dihitung di dalam Postgres |
+| **PIN admin** | Tertanam di kode yang dikirim ke browser | Di mode backend: hash di server, tidak ada PIN di klien |
 | **Gambar menu** | Tidak ada | Setiap menu punya gambar, ada bawaan otomatis |
 | **Struk** | Tabel dua kolom, melar di kertas termal | Daftar linear 80mm, `Rp` konsisten |
-| **Ukuran** | 128,8 KB gzip (halaman admin) | 20,4 KB gzip |
+| **Ukuran** | 128,8 KB gzip (halaman admin) | 27,2 KB gzip |
 
 ---
 
@@ -90,7 +91,7 @@ Nominalnya disisipkan ke dalam QR, termasuk kode unik, sehingga pembayaran masuk
 | Layar | Alamat | Dipakai oleh | Isi |
 |---|---|---|---|
 | **Beranda** | `/` | Operator | Pemilih layar, penunjuk arah |
-| **Kasir & Admin** | `/admin/` | Kasir, pemilik | 7 tab: Kasir, Dapur, Order, Menu, Meja, Analitik, Pengaturan |
+| **Kasir & Admin** | `/admin/` | Kasir, pemilik, dapur | 8 tab: Kasir, Dapur, Order, Menu, Meja, Stok, Analitik, Pengaturan |
 | **Pesan dari meja** | `/order/?t=<token>` | Pelanggan | Menu, keranjang, kirim pesanan |
 | **Layar bayar** | `/display/` | Pelanggan | Rincian pesanan, tahapan, QRIS |
 | **Antrian** | `/queue/` | TV ruang tunggu | Panggilan nomor, tiga kolom, suara |
@@ -111,7 +112,8 @@ Nominalnya disisipkan ke dalam QR, termasuk kode unik, sehingga pembayaran masuk
 - **Stok dengan riwayat dan peringatan.** Setiap penjualan mencatat pergerakan beserta saldonya, jadi pertanyaan "kenapa stok berkurang 5 padahal penjualan 3" punya jawaban yang bisa dibuka. Bahan yang menipis muncul di atas sebelum dapur kehabisan.
 - **Laporan yang bisa dibuka di Excel.** CSV dan `.xlsx` asli — lima sheet, angka tetap bertipe angka, lebar kolom terpasang. Penulis XLSX-nya ditulis sendiri, tanpa dependensi.
 - **Tetap jalan saat jaringan putus.** Perubahan masuk antrean tulis di perangkat dan dikirim ulang saat tersambung; ada penanda kecil di header yang menunjukkan ada berapa tulisan menunggu.
-- **Halaman yang sama sekali tidak butuh backend untuk dicoba.** Lapisan data berupa antarmuka dengan implementasi mock; cukup buka, dan semuanya berjalan.
+- **Backend sungguhan kalau dibutuhkan, opsional.** `supabase/schema.sql` berisi seluruh backend: 13 tabel, 47 fungsi Postgres, dan RLS yang menutup semua jalur tulis. Harga, penomoran order, nomor antrian, dan pemotongan stok dipindahkan ke server — sehingga tidak bisa diubah dari konsol peramban. Yang tidak mengisinya tetap dapat aplikasi yang jalan penuh tanpa backend.
+- **Halaman yang sama sekali tidak butuh backend untuk dicoba.** Lapisan data berupa antarmuka dengan implementasi mock; cukup buka, dan semuanya berjalan. SDK Supabase **tidak ikut terunduh** selama adapter-nya masih `mock` — 56,9 KB itu hanya diambil kalau Anda memang menyalakan backend.
 
 ---
 
@@ -156,10 +158,44 @@ Buka di tab terpisah:
 Biarkan papan antrian terbuka, lalu ubah status sebuah order dari tab admin. Papan itu bergerak sendiri tanpa dimuat ulang — itulah kanal realtime-nya.
 </details>
 
+<details>
+<summary><b>Menyalakan backend Supabase (opsional)</b></summary>
+<br>
+
+Bawaan aplikasi ini adalah mode demo tanpa backend, dan semuanya sudah jalan begitu saja. Kalau Anda ingin data yang benar-benar bersama antar perangkat — dua kasir, satu basis data — ada backend siap pakai di `supabase/`.
+
+**1. Buat proyek Supabase**, lalu buka **SQL Editor**.
+
+**2. Jalankan `supabase/schema.sql`.** Tempel seluruh isinya, jalankan. Ini membuat tabel, fungsi, dan kebijakan aksesnya.
+
+**3. Jalankan `supabase/seed.sql`.** Isinya sama persis dengan data demo mode mock — 22 menu, 5 kategori, 8 meja, dan tiga akun per peran. Aman dijalankan berulang.
+
+**4. Isi berkas `.env`:**
+
+```bash
+cp .env.example .env
+```
+
+```ini
+VITE_DATA_ADAPTER=supabase
+VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Keduanya dari **Project Settings → API**. Kunci anon memang ikut terkirim ke setiap peramban — begitulah cara Supabase bekerja, dan yang membuatnya aman bukan kerahasiaannya melainkan RLS di skema itu. **Jangan** menaruh service role key di sini: kunci itu melewati RLS sepenuhnya, dan apa pun yang berawalan `VITE_` akan ikut ke dalam JavaScript yang diunduh pengunjung.
+
+**5. Jalankan ulang dev server.** Perubahan `.env` baru terbaca saat Vite dinyalakan lagi.
+
+**6. Ganti kata sandi akun demo** sebelum dipakai sungguhan. Akun di `seed.sql` memakai kredensial yang sudah tertulis terbuka di README ini. Cara menggantinya ada di komentar bagian "Akun demo" di dalam `seed.sql`.
+
+Setelah itu, hal-hal yang tadinya tidak mungkin menjadi mungkin: harga dan stok diputuskan server, peran dan sesi diperiksa server, dua kasir berbagi satu basis data, dan tidak ada lagi PIN di dalam bundel JavaScript.
+
+</details>
+
 ### Perintah lain
 
 ```bash
-npm run test        # 238 tes, tanpa kerangka pengujian tambahan
+npm run test        # 267 tes, tanpa kerangka pengujian tambahan
 npm run typecheck   # pemeriksaan tipe
 npm run check       # keduanya sekaligus
 npm run build       # build produksi ke dist/
@@ -209,23 +245,31 @@ flowchart TB
 
     subgraph RT["Realtime"]
         BC["BroadcastChannel — sinyal revisi"]
+        WS["Websocket — antar perangkat (mock)"]
+        SR["Supabase Realtime — antar perangkat (backend)"]
     end
 
     subgraph DA["Lapisan data"]
         RI["Repository — antarmuka"]
         MK["mock — localStorage"]
-        SB["Supabase — direncanakan"]
+        SB["Supabase — Postgres + RPC + RLS"]
+        SQL["supabase/schema.sql — 13 tabel, 47 fungsi"]
     end
 
     L --> S
     S --> D
     S --> RI
     RI --> MK
-    RI -.-> SB
+    RI --> SB
+    SB --> SQL
     S <--> BC
+    S <-.-> WS
+    S <-.-> SR
 ```
 
 **Arah ketergantungannya satu arah.** Layar memakai keadaan, keadaan memakai domain dan antarmuka data, domain tidak tahu apa-apa soal layar. Karena itu seluruh aturan uang dan alur pesanan bisa diuji tanpa browser.
+
+**Yang menentukan harga, ditentukan di mana adapternya berada.** Di mode mock, perhitungan ada di lapisan domain yang berjalan di peramban — cukup untuk demo, tapi bisa dibaca dari DevTools. Di adapter Supabase, perhitungan yang sama dikerjakan `app.compute_totals` di dalam Postgres, dan client hanya mengirim niat. Itu sebabnya `CreateOrderInput` sengaja tidak memuat total: tidak ada tempat untuk menaruhnya.
 
 <details>
 <summary><b>Struktur folder</b></summary>
@@ -244,6 +288,13 @@ src/
 ├── data/
 │   ├── repository.ts  Antarmuka Repository — kontraknya
 │   ├── mock/          Implementasi localStorage + data contoh
+│   ├── supabase/      Implementasi Postgres + Realtime
+│   │   ├── supabaseRepository.ts  29 metode, semuanya lewat fungsi
+│   │   ├── client.ts  Kredensial, token sesi, pembungkus galat
+│   │   ├── errors.ts  Pemetaan galat server → kode (murni, ada tesnya)
+│   │   ├── rows.ts    Pemetaan kolom snake_case → camelCase
+│   │   └── realtimeHub.ts  Kanal siaran sinyal revisi
+│   ├── load.ts        Pemuatan adapter secara dinamis
 │   └── index.ts       Pemilih implementasi
 ├── state/
 │   └── store.ts       Signal, pemuatan, dan jembatan realtime
@@ -252,6 +303,10 @@ src/
 │   ├── home/  admin/  order/  display/  queue/
 └── styles/
     └── app.css        Token desain, CSS cetak struk & lembar QR
+
+supabase/
+├── schema.sql         Seluruh backend: tabel, fungsi, RLS
+└── seed.sql           Data demo — sama persis dengan mode mock
 ```
 
 </details>
@@ -267,6 +322,7 @@ src/
 | **Tailwind 4** | Token desain di satu berkas; ukuran akhir lebih kecil karena hanya kelas yang dipakai yang ikut |
 | **@preact/signals** | Pembaruan keadaan tanpa langganan yang bocor, dan bisa dibaca dari luar komponen |
 | **uqr** | QR dibuat di dalam aplikasi, tanpa layanan pihak ketiga |
+| **@supabase/supabase-js** | Hanya untuk adapter backend, dan diimpor secara dinamis — 56,9 KB-nya tidak ikut terunduh di mode demo |
 | **`node --test`** | Sudah ada di Node — tidak perlu memasang kerangka pengujian |
 
 ### Ukuran yang dikirim ke pengguna
@@ -276,10 +332,10 @@ Diukur dari hasil build produksi, terkompresi:
 | Berkas | gzip |
 |---|---|
 | Admin (terbesar) | 27,2 KB |
-| Inti bersama | 16,6 KB |
+| Inti bersama | 17,4 KB |
 | Preact | 8,1 KB |
 | QR | 5,4 KB |
-| Pesan dari meja | 4,5 KB |
+| Pesan dari meja | 4,6 KB |
 | Antrian | 3,9 KB |
 | Layar bayar | 2,4 KB |
 | Beranda | 2,0 KB |
@@ -287,19 +343,23 @@ Diukur dari hasil build produksi, terkompresi:
 
 Admin tumbuh dari 20,4 KB ke 27,2 KB setelah peran, stok, laporan, dan penulis XLSX masuk. Kenaikannya nyata tapi masih di bawah seperlima aplikasi aslinya (128,8 KB) — dan penulis XLSX ikut di dalamnya, bukan dependensi terpisah.
 
-Pelanggan yang memesan dari meja **tidak** mengunduh seluruh aplikasi kasir. Yang benar-benar terkirim saat halaman pesan dibuka, diukur dari hasil build produksi:
+Menyalakan adapter Supabase menambah dua berkas: SDK-nya **56,9 KB** dan kode adapternya **3,1 KB**. Keduanya hanya diunduh kalau `VITE_DATA_ADAPTER=supabase` — di mode demo tidak ada satu pun berkas HTML yang memuatnya, dan tidak ada satu pun rujukan statis ke sana. Ini sudah diperiksa langsung pada hasil build, bukan diasumsikan dari konfigurasi.
+
+Pelanggan yang memesan dari meja **tidak** mengunduh seluruh aplikasi kasir. Diukur dari berkas yang benar-benar dirujuk `dist/order/index.html`:
 
 | Berkas | Terkompresi |
 |---|---|
-| Font Plus Jakarta Sans | 26,7 KB |
-| Gaya bersama | 13,3 KB |
-| Keadaan & data | 12,8 KB |
+| Font Plus Jakarta Sans (latin) | 26,8 KB |
+| Keadaan, domain & data | 17,4 KB |
+| Gaya bersama | 13,0 KB |
 | Preact | 8,1 KB |
-| Halaman pesan | 4,5 KB |
+| Halaman pesan | 4,6 KB |
 | Thumbnail menu | 1,2 KB |
-| **Total** | **66,6 KB** |
+| **Total** | **71,1 KB** |
 
-Satu berkas font memakan hampir setengahnya, karena diunduh utuh untuk seluruh rentang ketebalan. Memangkasnya lewat subsetting adalah cara termurah untuk menurunkannya lagi — masih di daftar rencana.
+Yang dihitung hanya subset latin. CSS-nya merujuk beberapa subset lain (latin-ext, cyrillic, vietnamese), tetapi peramban hanya mengunduh yang glifnya benar-benar dipakai — jadi berkas-berkas itu tidak pernah terkirim ke pelanggan berbahasa Indonesia, dan itu sebabnya mereka tidak ikut dijumlahkan di sini.
+
+Satu berkas font masih memakan hampir 40% dari total. Memangkasnya lewat subsetting adalah cara termurah untuk menurunkannya lagi — masih di daftar rencana.
 
 ---
 
@@ -309,7 +369,7 @@ Satu berkas font memakan hampir setengahnya, karena diunduh utuh untuk seluruh r
 npm run test
 ```
 
-**238 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
+**267 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
 
 - Perhitungan uang: pajak, pembulatan, kode unik, ringkasan laporan
 - Kode unik hanya diberikan untuk QRIS dan transfer — tunai tidak
@@ -327,6 +387,8 @@ npm run test
 - **Laporan:** dasar hitung uang, pembagian margin, judul kolom ikut tertulis
 - **XLSX:** ZIP sungguhan, CRC32 lolos, angka tetap bertipe angka, lebar kolom
 - **Websocket:** handshake RFC 6455 ditulis tangan, dua klien sungguhan, sambung ulang
+- **Pemetaan data backend:** kolom `snake_case` → `camelCase`, dan pengaturan yang belum lengkap tetap menghasilkan bentuk yang utuh — satu bagian yang hilang di basis data tidak boleh menjatuhkan seluruh layar
+- **Pemetaan galat backend:** galat jaringan tetap dikenali sebagai jaringan, penolakan aturan bisnis tidak — kalau tertukar, tulisan kasir hilang diam-diam atau antrean berputar selamanya
 
 Aturan uang dan alur pesanan sengaja diletakkan di lapisan domain, bukan di dalam komponen, supaya bisa diuji tanpa browser — dan supaya satu layar tidak bisa menafsirkannya berbeda dari layar lain.
 
@@ -353,23 +415,25 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 - [x] Riwayat stok & peringatan bahan menipis
 - [x] Ekspor laporan ke CSV dan Excel
 - [x] Mode luring dengan antrean tulis
-- [x] 238 tes, pemeriksaan tipe bersih
+- [x] Backend Supabase: skema, seed, adapter, dan RLS
+- [x] 267 tes, pemeriksaan tipe bersih
 
 **Berikutnya**
 
-- [ ] Implementasi Supabase untuk `Repository` — antarmukanya sudah siap, mock tinggal ditukar
+- [ ] **Uji backend terhadap proyek Supabase sungguhan.** Skema dan seed sudah ditulis dan lolos parser PostgreSQL 18, tetapi belum pernah dijalankan terhadap basis data hidup — lihat "Batasan yang jujur" di bawah
 - [ ] Pencocokan pembayaran masuk dari penyedia QRIS
-- [ ] Subset font agar halaman pelanggan turun dari 66,6 KB
+- [ ] Subset font agar halaman pelanggan turun dari 71,1 KB
+- [ ] Webhook QRIS supaya pembayaran tercatat sendiri tanpa kasir menekan "Lunas"
 
 ### Batasan yang jujur
 
 Agar tidak ada salah paham sebelum Anda memakainya:
 
-- **Belum ada backend.** Lapisan datanya masih mock yang menyimpan di `localStorage`. Antar perangkat kini tersambung lewat websocket, tapi yang disiarkan adalah **salinan keadaan**, bukan basis data bersama — kalau dua kasir menekan "bayar" pada detik yang sama, tidak ada yang menjamin urutannya. Untuk itu perlu backend sungguhan, dan `Repository` sudah disiapkan untuk itu.
-- **Server realtime-nya masih perlu dijalankan sendiri.** `npm run realtime` menyalakannya di port 8787; kalau tidak ada, aplikasi turun ke jalur antar-tab dan tetap jalan.
-- **Masuk masih sederhana.** Kata sandi akun demo disimpan apa adanya karena ini data contoh. Yang sudah benar: peran datang dari akun, bukan dipilih di layar masuk, dan izin ditegakkan per layar.
-- **Pembayaran belum terhubung ke penyedia.** QRIS yang dihasilkan sudah benar dan bisa dipindai, tetapi pencocokan pembayaran masuk masih perlu backend.
-- **Antrean tulis luring belum menyelesaikan bentrokan.** Kalau perubahan yang sama juga dilakukan di perangkat lain, yang menang adalah yang terakhir dikirim. Untuk satu perangkat yang jaringannya naik-turun, ini cukup; untuk dua kasir yang menyunting hal yang sama, belum.
+- **Backend Supabase belum pernah dijalankan terhadap proyek Supabase sungguhan.** Yang sudah terbukti: kedua berkas SQL lolos parser PostgreSQL 18 (97 pernyataan, dan seluruh 25 tubuh fungsi PL/pgSQL ikut diurai), pemeriksaan tipe bersih, dan 267 tes lolos. Yang **belum** terbukti: perilakunya saat benar-benar berjalan di Supabase — kesalahan semantik seperti kolom yang salah nama atau fungsi yang belum dibuat baru akan muncul di situ. Perlakukan ini sebagai backend yang siap diuji, bukan yang sudah teruji.
+- **Mode demo tetap punya batasan lamanya.** Tanpa `VITE_DATA_ADAPTER=supabase`, data masih hidup di `localStorage` peramban: satu perangkat satu salinan, dan yang menang saat bentrok adalah yang terakhir dikirim. Harga juga masih dihitung di peramban. Semua itu hilang begitu backend dinyalakan.
+- **Server realtime-nya masih perlu dijalankan sendiri** untuk mode mock. `npm run realtime` menyalakannya di port 8787; kalau tidak ada, aplikasi turun ke jalur antar-tab dan tetap jalan. Di adapter Supabase ini tidak berlaku — Realtime-nya ditangani Supabase.
+- **Akun demo memakai kredensial yang terbuka di repositori ini.** Di Supabase, sandi dan PIN-nya tersimpan sebagai hash bcrypt dan verifikasinya di server, tapi selama Anda belum menggantinya, siapa pun yang pernah membaca README ini tahu cara masuk sebagai pemilik. Cara menggantinya ada di komentar bagian "Akun demo" di `supabase/seed.sql`.
+- **Pembayaran belum terhubung ke penyedia.** QRIS yang dihasilkan sudah benar dan bisa dipindai, tetapi pencocokan pembayaran masuk masih perlu webhook dari penyedia.
 
 ---
 
@@ -378,7 +442,23 @@ Agar tidak ada salah paham sebelum Anda memakainya:
 <details>
 <summary><b>Apakah bisa dipakai tanpa internet?</b></summary>
 <br>
-Bisa dibuka, tetapi karena data disimpan di <code>localStorage</code> dan belum ada backend, ini masih satu peramban saja. Mode luring dengan antrean tulis ada di daftar rencana.
+Tergantung adapternya. Di mode <code>mock</code>, aplikasi terbuka tanpa jaringan dan seluruh data ada di <code>localStorage</code>; perubahan yang gagal terkirim masuk antrean tulis dan dikirim ulang begitu jaringan kembali. Yang tidak bisa dilakukan di mode itu adalah berbagi data antar perangkat tanpa jaringan. Di adapter <code>supabase</code>, data memang satu di server, jadi jaringan diperlukan — tapi antrean tulis yang sama tetap meredam putus-putus sesaat, dan kasir bisa terus melayani.
+</details>
+
+<details>
+<summary><b>Perlu backend atau tidak?</b></summary>
+<br>
+Kalau Anda hanya ingin mencoba, tidak. Buka saja — semuanya jalan, termasuk realtime antar-tab, stok, ekspor, dan mode luring.<br><br>
+Kalau dipakai di kedai sungguhan, iya, dan <code>supabase/schema.sql</code> sudah menyiapkannya. Tiga hal yang tidak bisa benar tanpa backend: <b>harga</b> (di mode demo dihitung di peramban, jadi bisa diubah dari konsol), <b>peran dan sesi</b> (PIN-nya ada di bundel JavaScript), dan <b>data bersama</b> (dua kasir butuh satu basis data, bukan dua salinan yang saling menimpa).<br><br>
+Menyalakannya tidak mengubah satu baris pun di lapisan tampilan — itu yang jadi alasan <code>Repository</code> dibuat sebagai antarmuka sejak awal.
+</details>
+
+<details>
+<summary><b>Kenapa skema SQL-nya tidak punya policy INSERT atau UPDATE?</b></summary>
+<br>
+Karena itu memang disengaja. RLS menyala di semua tabel, policy SELECT hanya dibuat untuk katalog dan pengaturan — dan tidak ada satu pun policy tulis. Artinya kunci anon, yang memang ikut terkirim ke setiap peramban pengunjung, tidak bisa mengubah apa pun.<br><br>
+Seluruh penulisan harus lewat fungsi Postgres, dan setiap fungsi memeriksa token sesi serta peran lebih dulu. Harga, nomor order, nomor antrian, dan pemotongan stok ditentukan di dalam fungsi itu — client hanya mengirim niat, bukan hasil hitungan.<br><br>
+Bandingkan dengan aplikasi aslinya, yang endpoint admin-nya terbuka: siapa pun yang tahu alamatnya bisa membaca dan mengubah data tanpa masuk.
 </details>
 
 <details>
@@ -419,6 +499,9 @@ Aturan yang dipegang di proyek ini:
 2. Harga tidak pernah dihitung di komponen layar.
 3. Perubahan status order lewat mesin keadaan, bukan penetapan langsung.
 4. Tanpa `innerHTML`. Bangun elemen.
+5. **Penulisan hanya lewat fungsi.** Di `supabase/schema.sql` tidak ada policy INSERT / UPDATE / DELETE, dan tidak boleh ditambahkan — begitu satu policy tulis dibuat, kunci anon yang ada di setiap peramban pengunjung bisa memakainya.
+6. **Perubahan skema harus ikut `supabase/seed.sql`.** Data demo di kedua adapter sengaja identik (id menu, token meja); kalau salah satu tertinggal, demonya jadi berbeda tergantung adapter.
+7. **Aturan yang sudah ada di server jangan diulang di client.** Kalau `create_order` sudah menentukan harga, adapter tidak boleh ikut menghitungnya — dua sumber kebenaran berarti yang di client selalu kalah, dan yang kalah itu tidak terlihat sampai ada yang menyalahgunakannya.
 
 ---
 
