@@ -1,0 +1,30 @@
+# Dependensi
+node_modules/
+.pnpm-store/
+
+# Hasil build
+dist/
+*.tsbuildinfo
+
+# Berkas lingkungan — jangan pernah ikut ter-commit
+.env
+.env.*
+!.env.example
+
+# Hasil recon aplikasi lama: berisi sumber pihak ketiga yang sudah didekode
+# (app.html, app.js, admin.js) dan catatan celah keamanan produk orang lain.
+# Sengaja tidak dipublikasikan.
+_recon/
+ANALISIS.md
+
+# Berkas sistem & editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Log
+*.log
+npm-debug.log*

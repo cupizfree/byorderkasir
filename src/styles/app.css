@@ -1,0 +1,638 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/playfair-display';
+
+/* ============================================================================
+   byorderkasir — sistem desain
+   ----------------------------------------------------------------------------
+   Semua warna di bawah ini sudah diukur kontrasnya terhadap WCAG 2.1.
+   Aturan yang dipakai:
+     - teks normal  : >= 4.5:1
+     - teks besar   : >= 3.0:1
+     - target sentuh: >= 44px (layar kasir & tablet dipakai dengan jari)
+   Nilai rasio ada di komentar tiap token.
+   ========================================================================= */
+
+/* Mode gelap berbasis kelas — dipakai kitchen display & TV (ruang redup). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans:
+    'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+
+  /* Font display untuk nama toko & angka besar. Serif memberi kesan
+     restoran yang matang — ini yang dipakai aplikasi lama, dan memang
+     membuatnya terasa lebih mahal. Dipakai hemat: hanya untuk judul. */
+  --font-display: 'Playfair Display Variable', Georgia, 'Times New Roman', serif;
+
+  /* --- Brand ---------------------------------------------------------------
+     Identitas oranye dipertahankan, tapi CTA memakai -700 (bukan -600 aslinya)
+     karena putih di atas #ea580c hanya 3.56:1 dan gagal AA.                */
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c; /* aksen, ikon, border — bukan latar teks putih */
+  --color-brand-700: #c2410c; /* CTA: putih di atasnya = 5.18:1  → AA lolos */
+  --color-brand-800: #9a3412; /* putih di atasnya = 7.31:1 */
+  --color-brand-900: #7c2d12;
+  --color-brand-950: #431407;
+
+  /* --- Ink (navy/slate) ---------------------------------------------------
+     `ink-950` = #0a192f, navy asli aplikasi lama, untuk permukaan gelap.   */
+  --color-ink-50: #f8fafc;
+  --color-ink-100: #f1f5f9;
+  --color-ink-200: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b; /* teks sekunder di atas ink-50 = 4.55:1 → AA lolos */
+  --color-ink-600: #475569;
+  --color-ink-700: #334155;
+  --color-ink-800: #1e293b;
+  --color-ink-900: #0f172a; /* teks utama, 17.06:1 di atas ink-50 */
+  --color-ink-950: #0a192f;
+
+  /* --- Status: pola tint (latar tipis + teks pekat) -----------------------
+     Semua pasangan di bawah lolos AA, dan teksnya juga lolos di atas putih. */
+  --color-pending: #92400e; /* di atas pending-bg = 6.84:1 */
+  --color-pending-bg: #fffbeb;
+  --color-processing: #1d4ed8; /* 6.16:1 */
+  --color-processing-bg: #eff6ff;
+  --color-ready: #6d28d9; /* 6.48:1 */
+  --color-ready-bg: #f5f3ff;
+  --color-done: #047857; /* 5.21:1 */
+  --color-done-bg: #ecfdf5;
+  --color-cancelled: #b91c1c; /* 5.91:1 */
+  --color-cancelled-bg: #fef2f2;
+  --color-paid: #047857;
+  --color-paid-bg: #ecfdf5;
+  --color-unpaid: #9a3412;
+  --color-unpaid-bg: #fff7ed;
+
+  /* --- Bentuk & gerak ----------------------------------------------------- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  /* --- Bayangan -----------------------------------------------------------
+     Berlapis: satu bayangan rapat untuk ketajaman tepi, satu bayangan lebar
+     dan lembut untuk kedalaman. Bayangan tunggal selalu terlihat "ditempel";
+     berlapis terlihat seperti benar-benar mengambang. Ini yang membuat
+     aplikasi lama terasa lebih mahal.
+     Dipakai lewat `shadow-card`, `shadow-lift`, `shadow-pop`, `shadow-glow`. */
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.05);
+  --shadow-lift: 0 2px 4px rgb(15 23 42 / 0.04), 0 12px 28px rgb(15 23 42 / 0.08);
+  --shadow-pop: 0 8px 24px rgb(15 23 42 / 0.1), 0 24px 48px rgb(15 23 42 / 0.12);
+  --shadow-glow: 0 6px 20px rgb(234 88 12 / 0.28);
+
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================================
+   Base
+   ========================================================================= */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ink-50 text-ink-900 font-sans antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* Fokus keyboard harus selalu terlihat — layar kasir dipakai cepat,
+     dan operator sering berpindah dengan Tab. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-700;
+  }
+
+  /* Angka uang harus rata kolom supaya tidak "bergoyang" saat realtime update. */
+  .num,
+  th.num,
+  td.num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ============================================================================
+   Utilitas kustom
+   ========================================================================= */
+
+/* Target sentuh minimum. Dipakai di semua tombol layar kasir & display. */
+@utility tap {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@utility tap-lg {
+  min-height: 56px;
+}
+
+/* Kartu dasar — satu definisi, bukan 103 `!important` tersebar.
+   Padding bawaan ada di sini, bukan diserahkan ke tiap pemakai. Sebelumnya
+   kartu tidak punya padding sama sekali, jadi isi kartu menempel ke tepi dan
+   garis bingkainya — dan tiap layar menambal sendiri dengan `!p-4`, `!p-0`,
+   atau tidak sama sekali. Itu yang membuat jarak antar layar tidak konsisten.
+   Yang butuh rapat (daftar berbaris) menimpanya dengan `!p-0`. */
+@utility card {
+  @apply rounded-xl border border-ink-200/80 bg-white p-5 shadow-card;
+}
+
+/* Kartu yang bisa diklik — terangkat saat disorot. */
+@utility card-interactive {
+  @apply card transition duration-200;
+  transition-timing-function: var(--ease-out-soft);
+}
+@utility card-interactive-hover {
+  @apply -translate-y-0.5 border-brand-300 shadow-lift;
+}
+
+/* Judul dengan font display. Dipakai hemat: nama toko & angka besar. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Permukaan gelap bergradien — dipakai header TV antrian & panel gelap.
+   Gradien halus, bukan blok warna rata. */
+@utility surface-dark {
+  background-image: linear-gradient(160deg, #0a192f 0%, #0f2440 55%, #14304f 100%);
+}
+
+/* Aman dari poni & gesture bar di tablet/HP. */
+@utility safe-x {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@utility safe-b {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ============================================================================
+   Animasi layar antrian
+   ----------------------------------------------------------------------------
+   Ditulis sebagai kelas biasa, bukan lewat @theme --animate-*, supaya
+   keyframes-nya tidak ikut ke bundel halaman lain yang tidak memakainya.
+   ========================================================================= */
+
+@keyframes bq-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bq-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(251 146 60 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 18px rgb(251 146 60 / 0);
+  }
+}
+
+@keyframes bq-rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Teks berjalan di kaki layar antrian. `padding-left: 100%` membuat teks
+   mulai dari tepi kanan; `translateX(-100%)` menggeser sepanjang lebar
+   elemen itu sendiri, jadi teks keluar sepenuhnya sebelum berulang. */
+@keyframes bq-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.anim-marquee {
+  display: inline-block;
+  padding-left: 100%;
+  animation: bq-marquee 34s linear infinite;
+}
+
+.anim-pop {
+  animation: bq-pop 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-glow {
+  animation: bq-glow 2.4s ease-out infinite;
+}
+
+.anim-rise {
+  animation: bq-rise 0.3s ease-out both;
+}
+
+/* ============================================================================
+   Cetak — struk thermal 80mm & tiket dapur
+   ========================================================================= */
+/* Wadah cetak tidak terlihat di layar; hanya muncul saat mencetak. */
+#byorder-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  /* Lembar QR meja dicetak di kertas biasa, bukan kertas struk. Named page
+     dipakai supaya ukurannya bisa berbeda dari struk dalam satu sesi cetak. */
+  @page lembar-qr {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .lembar-qr {
+    page: lembar-qr;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  /* Sembunyikan seluruh UI, lalu tampilkan hanya wadah cetak. */
+  body > *:not(#byorder-print) {
+    display: none !important;
+  }
+
+  #byorder-print {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* ---------------------------------------------------------------------
+     Struk thermal 80mm
+     Lebar kertas 80mm, area cetak 72mm. Padding 3mm kiri-kanan wajib:
+     tanpa itu karakter terakhir terpotong oleh head printer.
+     --------------------------------------------------------------------- */
+  .struk {
+    width: 72mm;
+    margin: 0 auto;
+    padding: 4mm 3mm 8mm;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    line-height: 1.4;
+    color: #000;
+  }
+
+  /* --- Kop toko ---------------------------------------------------------- */
+  .kop {
+    text-align: center;
+  }
+
+  .toko {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tagline {
+    margin-top: 0.8mm;
+    font-size: 9px;
+  }
+
+  .alamat {
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  /* --- Garis pemisah ----------------------------------------------------- */
+  .pisah {
+    margin: 2.5mm 0;
+    border-top: 1px dashed #000;
+  }
+
+  /* Garis tebal memisahkan "yang membentuk total" dari "yang dibayar". */
+  .pisah-tebal {
+    margin: 2.5mm 0;
+    border-top: 1.5px solid #000;
+  }
+
+  /* --- Identitas: satu kolom `label : nilai` -----------------------------
+     Sebelumnya dua kolom yang saling menjauh sampai label dan nilainya tidak
+     lagi terbaca sebagai satu pasangan. */
+  .meta-baris {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+  }
+
+  .meta-label {
+    flex: 0 0 22mm;
+    font-size: 9px;
+    color: #333;
+  }
+
+  .meta-nilai {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 600;
+    word-break: break-word;
+  }
+
+  /* --- Nomor antrian ----------------------------------------------------- */
+  .kotak-antrian {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3mm;
+    margin-top: 3mm;
+    padding: 2mm;
+    border: 1.5px solid #000;
+    border-radius: 1.5mm;
+  }
+
+  .antrian-label {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .antrian-nomor {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  /* --- Baris item -------------------------------------------------------- */
+  .item-baris {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+    margin-bottom: 0.8mm;
+  }
+
+  .item-qty {
+    flex: 0 0 7mm;
+    font-weight: 700;
+  }
+
+  .item-nama {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .item-catatan {
+    display: block;
+    font-size: 9px;
+    font-style: italic;
+    color: #333;
+  }
+
+  .item-harga {
+    flex: 0 0 17mm;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* --- Blok uang ---------------------------------------------------------
+     Rata kanan pada digit terakhir. Tanpa awalan "Rp" per baris supaya digit
+     satuannya tidak bergeser antar baris; "Rp" muncul sekali di baris akhir. */
+  .uang-baris {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2mm;
+  }
+
+  .uang-nilai {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bayar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2mm;
+    margin-top: 1.5mm;
+    padding-top: 1.5mm;
+    border-top: 1px solid #000;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .bayar-nilai {
+    white-space: nowrap;
+  }
+
+  /* --- QR ---------------------------------------------------------------- */
+  .qr-label {
+    margin-bottom: 1.5mm;
+    text-align: center;
+    font-size: 9px;
+  }
+
+  .qr-kotak {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5mm;
+  }
+
+  .qr-svg {
+    display: block;
+  }
+
+  .catatan {
+    font-size: 9.5px;
+    font-style: italic;
+    word-break: break-word;
+  }
+
+  .kaki {
+    text-align: center;
+    font-size: 9px;
+  }
+
+  .kecil {
+    font-size: 8.5px;
+  }
+
+  /* ---------------------------------------------------------------------
+     Tiket dapur
+     Dibaca sambil berdiri, tangan sering basah — semua dinaikkan ukurannya.
+     --------------------------------------------------------------------- */
+  .struk.dapur {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .dapur-kop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .dapur-judul {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+  }
+
+  .dapur-waktu {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .dapur-kepala {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2mm;
+  }
+
+  .dapur-nomor {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .dapur-meja {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .dapur-item {
+    display: flex;
+    gap: 2.5mm;
+    margin-bottom: 2mm;
+  }
+
+  .dapur-qty {
+    flex: 0 0 9mm;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .dapur-nama {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .dapur-catatan {
+    display: block;
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  .dapur-catatan-pesanan {
+    font-size: 14px;
+    font-weight: 700;
+    font-style: italic;
+    word-break: break-word;
+  }
+
+  /* ---------------------------------------------------------------------
+     Lembar QR meja
+     Kartu ukuran kartu nama, 3 kolom, supaya bisa digunting dan ditempel.
+     --------------------------------------------------------------------- */
+  .lembar-qr {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6mm;
+    padding: 6mm;
+  }
+
+  .kartu-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5mm;
+    padding: 4mm 3mm;
+    border: 1px dashed #999;
+    border-radius: 3mm;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kartu-qr .nama-meja {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .kartu-qr .nama-toko {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #444;
+  }
+
+  .kartu-qr .petunjuk {
+    font-size: 9px;
+    color: #666;
+  }
+
+  .kartu-qr .qr-slot svg {
+    display: block;
+  }
+
+  .kartu-qr .nomor {
+    font-size: 11px;
+    font-weight: 700;
+    color: #444;
+  }
+}
+
+/* Hormati preferensi pengguna yang mematikan animasi. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
