@@ -184,6 +184,41 @@ export interface DiningTable {
 }
 
 /* ==========================================================================
+   Pergerakan stok
+   ========================================================================== */
+
+export type StockReason = 'sale' | 'restock' | 'waste' | 'adjustment' | 'return';
+
+/**
+ * Satu perubahan stok.
+ *
+ * Aplikasi aslinya hanya menyimpan satu angka `stock` per menu lalu
+ * menurunkannya saat order dibuat — tanpa jejak. Akibatnya pertanyaan yang
+ * paling sering muncul saat operasional tidak bisa dijawab: kenapa stok
+ * berkurang 5 padahal penjualan hanya 3?
+ *
+ * Di sini setiap perubahan dicatat sebagai pergerakan tersendiri. Angka `stock`
+ * di menu tetap ada supaya pembacaan cepat tidak perlu menjumlahkan riwayat;
+ * `balance` menyimpan saldo setelah pergerakan itu sebagai titik pemeriksa.
+ */
+export interface StockMovement {
+  id: ID;
+  storeId: ID;
+  menuId: ID;
+  /** Nama disalin saat pencatatan: menu bisa diganti nama atau dihapus nanti. */
+  menuName: string;
+  /** Perubahan jumlah. Positif menambah, negatif mengurangi. */
+  delta: number;
+  /** Saldo setelah pergerakan ini. */
+  balance: number;
+  reason: StockReason;
+  note: string;
+  /** Siapa yang mencatat — nama tampilan pengguna. */
+  actor: string;
+  at: string;
+}
+
+/* ==========================================================================
    Pengaturan toko — menggantikan 46 kunci datar
    ========================================================================= */
 
@@ -263,6 +298,14 @@ export interface StoreSettings {
     /** Nomor antrian direset setiap hari. */
     resetDaily: boolean;
   };
+
+  stock: {
+    /**
+     * Ambang peringatan "menipis". Stok yang sama atau di bawah angka ini
+     * dianggap perlu segera ditambah. 0 = peringatan dimatikan.
+     */
+    lowStockThreshold: number;
+  };
 }
 
 /* ==========================================================================
@@ -278,7 +321,7 @@ export interface RealtimeSignal {
   storeId: ID;
   /** Naik setiap ada perubahan. Client membandingkan dengan yang terakhir dilihat. */
   revision: number;
-  scope: 'orders' | 'menus' | 'settings' | 'display' | 'queue';
+  scope: 'orders' | 'menus' | 'settings' | 'display' | 'queue' | 'stock';
   at: string;
 }
 

@@ -13,6 +13,7 @@ import type {
   ID,
   Menu,
   StoreSettings,
+  UserRole,
 } from '../../domain/types.ts';
 
 export const DEMO_STORE_ID = 'store-demo';
@@ -61,6 +62,12 @@ export const seedSettings: StoreSettings = {
   },
 
   queue: { prefix: 'A', resetDaily: true },
+
+  stock: {
+    // 5 dipilih karena untuk kafe, stok di bawah lima porsi berarti
+    // kemungkinan besar habis sebelum restock berikutnya.
+    lowStockThreshold: 5,
+  },
 };
 
 export const seedCategories: Category[] = [
@@ -82,33 +89,38 @@ interface SeedMenu {
   isAvailable?: boolean;
 }
 
+// Seluruh menu dilacak stoknya, dan sebagian sengaja sudah menipis di bawah
+// ambang (5). Kalau hanya beberapa yang dilacak — apalagi kalau menu teratas
+// di layar kasir bukan salah satunya — orang yang mencoba aplikasinya tidak
+// akan pernah melihat peringatan bahan maupun riwayat stok dari penjualan
+// biasa. Fiturnya ada, tapi tidak terlihat.
 const rawMenus: SeedMenu[] = [
-  { id: 'mn-espresso', name: 'Espresso', categoryId: 'cat-kopi', price: 18000, costPrice: 6000, description: 'Single shot, biji house blend', stock: null },
-  { id: 'mn-americano', name: 'Americano', categoryId: 'cat-kopi', price: 22000, costPrice: 6500, description: 'Espresso + air panas', stock: null },
-  { id: 'mn-kopi-susu', name: 'Kopi Susu Senja', categoryId: 'cat-kopi', price: 25000, costPrice: 9000, description: 'Signature, susu segar', stock: null },
-  { id: 'mn-cappuccino', name: 'Cappuccino', categoryId: 'cat-kopi', price: 28000, costPrice: 9500, description: 'Dengan foam lembut', stock: null },
-  { id: 'mn-latte', name: 'Caffè Latte', categoryId: 'cat-kopi', price: 28000, costPrice: 9500, description: 'Espresso + susu steamed', stock: null },
-  { id: 'mn-coldbrew', name: 'Cold Brew', categoryId: 'cat-kopi', price: 32000, costPrice: 11000, description: 'Diseduh dingin 12 jam', stock: 8 },
+  { id: 'mn-espresso', name: 'Espresso', categoryId: 'cat-kopi', price: 18000, costPrice: 6000, description: 'Single shot, biji house blend', stock: 40},
+  { id: 'mn-americano', name: 'Americano', categoryId: 'cat-kopi', price: 22000, costPrice: 6500, description: 'Espresso + air panas', stock: 35},
+  { id: 'mn-kopi-susu', name: 'Kopi Susu Senja', categoryId: 'cat-kopi', price: 25000, costPrice: 9000, description: 'Signature, susu segar', stock: 18},
+  { id: 'mn-cappuccino', name: 'Cappuccino', categoryId: 'cat-kopi', price: 28000, costPrice: 9500, description: 'Dengan foam lembut', stock: 22},
+  { id: 'mn-latte', name: 'Caffè Latte', categoryId: 'cat-kopi', price: 28000, costPrice: 9500, description: 'Espresso + susu steamed', stock: 20},
+  { id: 'mn-coldbrew', name: 'Cold Brew', categoryId: 'cat-kopi', price: 32000, costPrice: 11000, description: 'Diseduh dingin 12 jam', stock: 8},
 
-  { id: 'mn-matcha', name: 'Matcha Latte', categoryId: 'cat-nonkopi', price: 30000, costPrice: 12000, description: 'Matcha Jepang grade premium', stock: null },
-  { id: 'mn-chocolate', name: 'Dark Chocolate', categoryId: 'cat-nonkopi', price: 28000, costPrice: 10000, description: 'Cokelat 70%', stock: null },
-  { id: 'mn-teh', name: 'Teh Melati', categoryId: 'cat-nonkopi', price: 12000, costPrice: 3000, description: 'Teh tubruk melati', stock: null },
-  { id: 'mn-air', name: 'Air Mineral', categoryId: 'cat-nonkopi', price: 6000, costPrice: 2500, description: 'Botol 600ml', stock: null },
-  { id: 'mn-lemon-tea', name: 'Lemon Tea', categoryId: 'cat-nonkopi', price: 20000, costPrice: 6000, description: 'Teh + lemon segar', stock: null },
+  { id: 'mn-matcha', name: 'Matcha Latte', categoryId: 'cat-nonkopi', price: 30000, costPrice: 12000, description: 'Matcha Jepang grade premium', stock: 4},
+  { id: 'mn-chocolate', name: 'Dark Chocolate', categoryId: 'cat-nonkopi', price: 28000, costPrice: 10000, description: 'Cokelat 70%', stock: 14},
+  { id: 'mn-teh', name: 'Teh Melati', categoryId: 'cat-nonkopi', price: 12000, costPrice: 3000, description: 'Teh tubruk melati', stock: 30},
+  { id: 'mn-air', name: 'Air Mineral', categoryId: 'cat-nonkopi', price: 6000, costPrice: 2500, description: 'Botol 600ml', stock: 48},
+  { id: 'mn-lemon-tea', name: 'Lemon Tea', categoryId: 'cat-nonkopi', price: 20000, costPrice: 6000, description: 'Teh + lemon segar', stock: 16},
 
-  { id: 'mn-nasgor', name: 'Nasi Goreng Senja', categoryId: 'cat-makanan', price: 32000, costPrice: 15000, description: 'Telur mata sapi, kerupuk', stock: null },
-  { id: 'mn-mie-goreng', name: 'Mie Goreng Spesial', categoryId: 'cat-makanan', price: 28000, costPrice: 12000, description: 'Ayam, telur, sayur', stock: null },
-  { id: 'mn-ayam-geprek', name: 'Ayam Geprek', categoryId: 'cat-makanan', price: 30000, costPrice: 14000, description: 'Level 1-5, sambal bawang', stock: null },
-  { id: 'mn-nasi-ayam', name: 'Nasi Ayam Bakar', categoryId: 'cat-makanan', price: 35000, costPrice: 16000, description: 'Dengan lalapan', stock: 12 },
-  { id: 'mn-kentang', name: 'Kentang Goreng', categoryId: 'cat-makanan', price: 22000, costPrice: 8000, description: 'Porsi sedang, saus mayo', stock: null },
+  { id: 'mn-nasgor', name: 'Nasi Goreng Senja', categoryId: 'cat-makanan', price: 32000, costPrice: 15000, description: 'Telur mata sapi, kerupuk', stock: 9},
+  { id: 'mn-mie-goreng', name: 'Mie Goreng Spesial', categoryId: 'cat-makanan', price: 28000, costPrice: 12000, description: 'Ayam, telur, sayur', stock: 7},
+  { id: 'mn-ayam-geprek', name: 'Ayam Geprek', categoryId: 'cat-makanan', price: 30000, costPrice: 14000, description: 'Level 1-5, sambal bawang', stock: 11},
+  { id: 'mn-nasi-ayam', name: 'Nasi Ayam Bakar', categoryId: 'cat-makanan', price: 35000, costPrice: 16000, description: 'Dengan lalapan', stock: 12},
+  { id: 'mn-kentang', name: 'Kentang Goreng', categoryId: 'cat-makanan', price: 22000, costPrice: 8000, description: 'Porsi sedang, saus mayo', stock: 24},
 
-  { id: 'mn-pisang', name: 'Pisang Goreng Keju', categoryId: 'cat-snack', price: 20000, costPrice: 7000, description: '3 potong, keju cheddar', stock: null },
-  { id: 'mn-roti-bakar', name: 'Roti Bakar Cokelat', categoryId: 'cat-snack', price: 18000, costPrice: 6000, description: 'Dengan susu kental manis', stock: null },
-  { id: 'mn-tahu-crispy', name: 'Tahu Crispy', categoryId: 'cat-snack', price: 16000, costPrice: 5500, description: 'Sambal kecap', stock: 20 },
+  { id: 'mn-pisang', name: 'Pisang Goreng Keju', categoryId: 'cat-snack', price: 20000, costPrice: 7000, description: '3 potong, keju cheddar', stock: 3},
+  { id: 'mn-roti-bakar', name: 'Roti Bakar Cokelat', categoryId: 'cat-snack', price: 18000, costPrice: 6000, description: 'Dengan susu kental manis', stock: 10},
+  { id: 'mn-tahu-crispy', name: 'Tahu Crispy', categoryId: 'cat-snack', price: 16000, costPrice: 5500, description: 'Sambal kecap', stock: 20},
 
-  { id: 'mn-brownies', name: 'Brownies Fudge', categoryId: 'cat-dessert', price: 26000, costPrice: 10000, description: 'Satu potong, hangat', stock: 6 },
-  { id: 'mn-cheesecake', name: 'Cheesecake Slice', categoryId: 'cat-dessert', price: 34000, costPrice: 14000, description: 'New York style', stock: 4 },
-  { id: 'mn-puding', name: 'Puding Karamel', categoryId: 'cat-dessert', price: 15000, costPrice: 5000, description: 'Dingin, homemade', stock: null },
+  { id: 'mn-brownies', name: 'Brownies Fudge', categoryId: 'cat-dessert', price: 26000, costPrice: 10000, description: 'Satu potong, hangat', stock: 6},
+  { id: 'mn-cheesecake', name: 'Cheesecake Slice', categoryId: 'cat-dessert', price: 34000, costPrice: 14000, description: 'New York style', stock: 4},
+  { id: 'mn-puding', name: 'Puding Karamel', categoryId: 'cat-dessert', price: 15000, costPrice: 5000, description: 'Dingin, homemade', stock: 2},
 ];
 
 export const seedMenus: Menu[] = rawMenus.map((m, i) => ({
@@ -135,12 +147,58 @@ export const seedTables: DiningTable[] = Array.from({ length: 8 }, (_, i) => ({
   qrToken: `demo-token-${i + 1}`,
 }));
 
-/** Kredensial demo. Hanya dipakai adapter mock — tidak pernah dikirim ke client
- *  pada implementasi Supabase (di sana verifikasi terjadi di server). */
+/**
+ * Akun demo — satu per peran.
+ *
+ * Aplikasi aslinya hanya punya satu akun tanpa peran, dan PIN-nya ikut
+ * terkirim ke peramban sehingga bisa dibaca siapa saja. Di sini peran melekat
+ * pada akunnya, jadi izin sudah bisa ditentukan sebelum satu layar pun dibuka.
+ *
+ * Ini akun DEMO untuk mode tanpa backend, dan sengaja bukan kredensial
+ * aplikasi mana pun yang sudah ada. Di Supabase, akun disimpan di server dan
+ * kata sandinya di-hash.
+ */
+export interface DemoAccount {
+  userId: ID;
+  username: string;
+  password: string;
+  pin: string;
+  role: UserRole;
+  displayName: string;
+}
+
+export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
+  {
+    userId: 'user-owner',
+    username: 'pemilik',
+    password: 'pemilik123',
+    pin: '111111',
+    role: 'owner',
+    displayName: 'Bu Sari',
+  },
+  {
+    userId: 'user-cashier',
+    username: 'kasir',
+    password: 'kasir123',
+    pin: '222222',
+    role: 'cashier',
+    displayName: 'Andi',
+  },
+  {
+    userId: 'user-kitchen',
+    username: 'dapur',
+    password: 'dapur123',
+    pin: '333333',
+    role: 'kitchen',
+    displayName: 'Dewi',
+  },
+];
+
+/** Akun pemilik — dipakai tombol "Isi otomatis" sebagai pilihan pertama. */
 export const DEMO_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123',
-  pin: '123456',
+  username: DEMO_ACCOUNTS[0]!.username,
+  password: DEMO_ACCOUNTS[0]!.password,
+  pin: DEMO_ACCOUNTS[0]!.pin,
 } as const;
 
 /** Nilai yang dipakai untuk kunci penyimpanan di localStorage. */

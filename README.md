@@ -106,6 +106,11 @@ Nominalnya disisipkan ke dalam QR, termasuk kode unik, sehingga pembayaran masuk
 - **QR dibuat lokal.** Token meja dan payload QRIS tidak pernah dikirim ke layanan QR pihak ketiga.
 - **Struk termal yang benar-benar muat.** 80mm, jarak 3mm, daftar linear — bukan tabel dua kolom yang melar di kertas sempit. Ada juga lembar A4 untuk mencetak QR semua meja sekaligus.
 - **Analitik yang jujur.** Semua angka uang hanya menghitung order yang sudah lunas. Order yang belum dibayar ditampilkan terpisah sebagai piutang, tidak diam-diam ikut dihitung sebagai pemasukan.
+- **Peran menentukan layar, bukan sekadar label.** Kasir, dapur, dan pemilik masuk dengan akun masing-masing; yang muncul hanya layar yang memang jadi tugasnya. Layar yang tidak diizinkan **dialihkan**, bukan ditolak dengan pesan galat — orang yang salah mengetuk pintu diantar ke pintu yang benar.
+- **Realtime sungguhan lintas perangkat.** Bukan `BroadcastChannel` antar-tab, melainkan websocket ke server kecil tanpa dependensi. Satu perangkat menekan "bayar", papan antrian di perangkat lain bergerak. Ada jalur cadangan antar-tab saat server tidak tersedia.
+- **Stok dengan riwayat dan peringatan.** Setiap penjualan mencatat pergerakan beserta saldonya, jadi pertanyaan "kenapa stok berkurang 5 padahal penjualan 3" punya jawaban yang bisa dibuka. Bahan yang menipis muncul di atas sebelum dapur kehabisan.
+- **Laporan yang bisa dibuka di Excel.** CSV dan `.xlsx` asli — lima sheet, angka tetap bertipe angka, lebar kolom terpasang. Penulis XLSX-nya ditulis sendiri, tanpa dependensi.
+- **Tetap jalan saat jaringan putus.** Perubahan masuk antrean tulis di perangkat dan dikirim ulang saat tersambung; ada penanda kecil di header yang menunjukkan ada berapa tulisan menunggu.
 - **Halaman yang sama sekali tidak butuh backend untuk dicoba.** Lapisan data berupa antarmuka dengan implementasi mock; cukup buka, dan semuanya berjalan.
 
 ---
@@ -154,11 +159,26 @@ Biarkan papan antrian terbuka, lalu ubah status sebuah order dari tab admin. Pap
 ### Perintah lain
 
 ```bash
-npm run test        # 120 tes, tanpa kerangka pengujian tambahan
+npm run test        # 236 tes, tanpa kerangka pengujian tambahan
 npm run typecheck   # pemeriksaan tipe
 npm run check       # keduanya sekaligus
 npm run build       # build produksi ke dist/
 npm run preview     # pratinjau hasil build
+npm run realtime    # server websocket lintas-perangkat di port 8787
+```
+
+Server realtime itu opsional. Tanpa dijalankan, aplikasi memakai kanal antar-tab dan tetap bekerja — hanya saja dua perangkat berbeda tidak saling melihat. Untuk mencoba lintas-perangkat, jalankan `npm run realtime` di satu terminal, lalu setel alamatnya saat menjalankan dev server:
+
+```bash
+VITE_REALTIME_URL=ws://192.168.1.10:8787 npm run dev
+```
+
+Ganti alamat itu dengan IP komputer yang menjalankan servernya, supaya ponsel di jaringan yang sama bisa menyambung.
+
+Kalau `VITE_REALTIME_URL` dibiarkan kosong, kanal websocket **tidak dinyalakan sama sekali** — bukan menebak alamat lain. Aplikasi tetap berfungsi penuh lewat kanal antar-tab, hanya saja antar-perangkat tidak tersambung. Untuk mencobanya tanpa membangun ulang, setel dari konsol peramban:
+
+```js
+globalThis.__REALTIME_URL = 'ws://192.168.1.10:8787'
 ```
 
 ---
@@ -255,15 +275,17 @@ Diukur dari hasil build produksi, terkompresi:
 
 | Berkas | gzip |
 |---|---|
-| Admin (terbesar) | 20,4 KB |
-| Inti bersama | 12,7 KB |
+| Admin (terbesar) | 27,2 KB |
+| Inti bersama | 16,6 KB |
 | Preact | 8,1 KB |
 | QR | 5,4 KB |
 | Pesan dari meja | 4,5 KB |
 | Antrian | 3,9 KB |
 | Layar bayar | 2,4 KB |
 | Beranda | 2,0 KB |
-| Gaya (semua layar) | 13,2 KB |
+| Gaya (semua layar) | 13,0 KB |
+
+Admin tumbuh dari 20,4 KB ke 27,2 KB setelah peran, stok, laporan, dan penulis XLSX masuk. Kenaikannya nyata tapi masih di bawah seperlima aplikasi aslinya (128,8 KB) — dan penulis XLSX ikut di dalamnya, bukan dependensi terpisah.
 
 Pelanggan yang memesan dari meja **tidak** mengunduh seluruh aplikasi kasir. Yang benar-benar terkirim saat halaman pesan dibuka, diukur dari hasil build produksi:
 
@@ -287,7 +309,7 @@ Satu berkas font memakan hampir setengahnya, karena diunduh utuh untuk seluruh r
 npm run test
 ```
 
-**120 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
+**236 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
 
 - Perhitungan uang: pajak, pembulatan, kode unik, ringkasan laporan
 - Kode unik hanya diberikan untuk QRIS dan transfer — tunai tidak
@@ -297,8 +319,17 @@ npm run test
 - Geometri QR: zona tenang, ukuran modul, hasil yang bisa dipindai
 - Payload QRIS dinamis: nominal tersisip, pemeriksaan jumlah
 - Rentang tanggal dan format waktu
+- **Izin per peran:** siapa boleh membuka layar apa, dan ke mana dialihkan kalau tidak boleh
+- **Stok:** saldo sejalan dengan riwayat pergerakan, ambang peringatan, arah dan alasan
+- **Antrean tulis luring:** urutan kirim, percobaan ulang, batas percobaan, tulis yang gagal
+- **CSV:** pemisah kolom, kutip ganda, awalan anti-rumus, angka negatif tetap angka
+- **Laporan:** dasar hitung uang, pembagian margin, judul kolom ikut tertulis
+- **XLSX:** ZIP sungguhan, CRC32 lolos, angka tetap bertipe angka, lebar kolom
+- **Websocket:** handshake RFC 6455 ditulis tangan, dua klien sungguhan, sambung ulang
 
 Aturan uang dan alur pesanan sengaja diletakkan di lapisan domain, bukan di dalam komponen, supaya bisa diuji tanpa browser — dan supaya satu layar tidak bisa menafsirkannya berbeda dari layar lain.
+
+Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "berhasil" diunduh dan ukurannya wajar, tapi judul kolomnya hilang. Tesnya membaca bita berkas akhirnya, bukan sekadar bentuk data di memori.
 
 ---
 
@@ -316,26 +347,28 @@ Aturan uang dan alur pesanan sengaja diletakkan di lapisan domain, bukan di dala
 - [x] Struk termal 80mm & lembar QR A4
 - [x] Gambar menu dengan bawaan otomatis per kategori
 - [x] Analitik: omzet, laba, menu terlaris, jam tersibuk
-- [x] 120 tes, pemeriksaan tipe bersih
+- [x] Masuk dengan peran (kasir / dapur / pemilik) dan izin per layar
+- [x] Sinkronisasi lintas-perangkat lewat websocket, bukan hanya antar-tab
+- [x] Riwayat stok & peringatan bahan menipis
+- [x] Ekspor laporan ke CSV dan Excel
+- [x] Mode luring dengan antrean tulis
+- [x] 236 tes, pemeriksaan tipe bersih
 
 **Berikutnya**
 
 - [ ] Implementasi Supabase untuk `Repository` — antarmukanya sudah siap, mock tinggal ditukar
-- [ ] Masuk dengan peran (kasir / dapur / pemilik) dan izin per layar
-- [ ] Sinkronisasi lintas-perangkat lewat websocket, bukan hanya antar-tab
-- [ ] Riwayat stok & peringatan bahan menipis
-- [ ] Ekspor laporan ke CSV dan Excel
-- [ ] Mode luring dengan antrean tulis
+- [ ] Pencocokan pembayaran masuk dari penyedia QRIS
 - [ ] Subset font agar halaman pelanggan turun dari 66,6 KB
 
 ### Batasan yang jujur
 
 Agar tidak ada salah paham sebelum Anda memakainya:
 
-- **Belum ada backend.** Lapisan datanya masih mock yang menyimpan di `localStorage`. Antara layar pada satu peramban, semuanya tersambung dan realtime; **antar perangkat belum**. Itu pekerjaan berikutnya, dan `Repository` sudah disiapkan untuk itu.
-- **Realtime saat ini antar-tab, bukan antar-perangkat.** Karena belum ada backend, `BroadcastChannel` hanya menjangkau tab pada peramban yang sama.
-- **Masuk masih sederhana.** Peran pengguna sudah ada di tipe data, tetapi pembatasan izin per layar belum ditegakkan.
+- **Belum ada backend.** Lapisan datanya masih mock yang menyimpan di `localStorage`. Antar perangkat kini tersambung lewat websocket, tapi yang disiarkan adalah **salinan keadaan**, bukan basis data bersama — kalau dua kasir menekan "bayar" pada detik yang sama, tidak ada yang menjamin urutannya. Untuk itu perlu backend sungguhan, dan `Repository` sudah disiapkan untuk itu.
+- **Server realtime-nya masih perlu dijalankan sendiri.** `npm run realtime` menyalakannya di port 8787; kalau tidak ada, aplikasi turun ke jalur antar-tab dan tetap jalan.
+- **Masuk masih sederhana.** Kata sandi akun demo disimpan apa adanya karena ini data contoh. Yang sudah benar: peran datang dari akun, bukan dipilih di layar masuk, dan izin ditegakkan per layar.
 - **Pembayaran belum terhubung ke penyedia.** QRIS yang dihasilkan sudah benar dan bisa dipindai, tetapi pencocokan pembayaran masuk masih perlu backend.
+- **Antrean tulis luring belum menyelesaikan bentrokan.** Kalau perubahan yang sama juga dilakukan di perangkat lain, yang menang adalah yang terakhir dikirim. Untuk satu perangkat yang jaringannya naik-turun, ini cukup; untuk dua kasir yang menyunting hal yang sama, belum.
 
 ---
 

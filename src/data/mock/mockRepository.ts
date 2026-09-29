@@ -28,6 +28,7 @@ import type {
   Payment,
   RealtimeSignal,
   Session,
+  StockMovement,
   StoreSettings,
 } from '../../domain/types.ts';
 import {
@@ -42,7 +43,7 @@ import { nextQueue, type QueueState } from '../../domain/queue.ts';
 import { dateKey, DEFAULT_TZ, nowIso } from '../../domain/time.ts';
 
 import {
-  DEMO_CREDENTIALS,
+  DEMO_ACCOUNTS,
   DEMO_STORE_ID,
   STORAGE_KEY,
   seedCategories,
@@ -56,11 +57,12 @@ import {
   type CreateOrderInput,
   type MenuInput,
   type OrderFilter,
-  type RealtimeHub,
   RepositoryError,
   type Repository,
+  type StockMovementInput,
   type TableInput,
 } from '../repository.ts';
+import { createRealtimeHub, type PublishingRealtimeHub } from '../realtime/index.ts';
 
 /* ==========================================================================
    Bentuk state
@@ -72,6 +74,8 @@ interface MockState {
   menus: Menu[];
   tables: DiningTable[];
   orders: Order[];
+  /** Riwayat pergerakan stok, terbaru di depan. */
+  stockMovements: StockMovement[];
   /** Nomor urut order harian — dasar kode order & kode unik. */
   sequence: { dateKey: string; last: number };
   queue: QueueState;
@@ -80,113 +84,15 @@ interface MockState {
   session: Session | null;
 }
 
-const CHANNEL_NAME = 'byorderkasir:realtime';
+/** Jeda buatan supaya perilaku asinkron terasa seperti backend sungguhan. */
 const LATENCY_MS = 40;
-
-/* ==========================================================================
-   Kanal realtime
-   ========================================================================= */
-
-class BroadcastRealtimeHub implements RealtimeHub {
-  #channel: BroadcastChannel | null = null;
-  #listeners = new Set<(s: RealtimeSignal) => void>();
-  #statusListeners = new Set<(s: ConnectionStatus) => void>();
-  #status: ConnectionStatus = 'offline';
-  #storeId: ID | null = null;
-
-  constructor() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', this.#onStorage);
-    }
-  }
-
-  #onStorage = (e: StorageEvent): void => {
-    if (e.key !== `${CHANNEL_NAME}:signal` || !e.newValue) return;
-    try {
-      this.#emit(JSON.parse(e.newValue) as RealtimeSignal);
-    } catch {
-      // Sinyal rusak diabaikan; pembacaan berikutnya akan menyusul.
-    }
-  };
-
-  start(storeId: ID): void {
-    this.#storeId = storeId;
-    if (typeof BroadcastChannel !== 'undefined') {
-      try {
-        this.#channel?.close();
-        this.#channel = new BroadcastChannel(CHANNEL_NAME);
-        this.#channel.onmessage = (ev: MessageEvent<RealtimeSignal>) => this.#emit(ev.data);
-        this.#setStatus('live');
-        return;
-      } catch {
-        this.#channel = null;
-      }
-    }
-    // Fallback: event `storage` antar-tab tetap bekerja walau tanpa BroadcastChannel.
-    this.#setStatus('live');
-  }
-
-  stop(): void {
-    this.#channel?.close();
-    this.#channel = null;
-    this.#setStatus('offline');
-  }
-
-  subscribe(listener: (s: RealtimeSignal) => void): () => void {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
-  }
-
-  onStatus(listener: (s: ConnectionStatus) => void): () => void {
-    this.#statusListeners.add(listener);
-    listener(this.#status);
-    return () => this.#statusListeners.delete(listener);
-  }
-
-  status(): ConnectionStatus {
-    return this.#status;
-  }
-
-  /** Dipakai repositori untuk menyiarkan perubahan. */
-  broadcast(signal: RealtimeSignal): void {
-    this.#emit(signal);
-
-    // Tulis ke penyimpanan DULU, baru kirim pesan ke tab lain.
-    // Urutannya penting: penerima akan memuat ulang state dari penyimpanan,
-    // jadi datanya harus sudah terlihat sebelum sinyalnya tiba.
-    try {
-      localStorage.setItem(`${CHANNEL_NAME}:signal`, JSON.stringify(signal));
-    } catch {
-      // Kuota penuh / mode privat: BroadcastChannel sudah cukup.
-    }
-
-    this.#channel?.postMessage(signal);
-  }
-
-  #emit(signal: RealtimeSignal): void {
-    if (this.#storeId && signal.storeId !== this.#storeId) return;
-    for (const l of this.#listeners) {
-      try {
-        l(signal);
-      } catch (err) {
-        console.error('[realtime] pendengar gagal', err);
-      }
-    }
-  }
-
-  #setStatus(s: ConnectionStatus): void {
-    if (this.#status === s) return;
-    this.#status = s;
-    for (const l of this.#statusListeners) l(s);
-  }
-}
 
 /* ==========================================================================
    Repositori mock
    ========================================================================= */
 
 export class MockRepository implements Repository {
-  readonly realtime = new BroadcastRealtimeHub();
+  readonly realtime: PublishingRealtimeHub = createRealtimeHub();
 
   #state: MockState;
 
@@ -212,6 +118,31 @@ export class MockRepository implements Repository {
       if (signal.revision > this.#state.revision) {
         this.#state = this.#load();
       }
+    });
+
+    /**
+     * Sinkronisasi lintas-perangkat.
+     *
+     * Perangkat lain tidak berbagi localStorage, jadi memuat ulang dari
+     * penyimpanan tidak ada gunanya di sana — datanya memang belum pernah ada.
+     * Yang datang justru datanya sendiri, dan itu yang dipakai.
+     *
+     * Revisi diperiksa lebih dulu: snapshot yang tiba terlambat (sambungan
+     * lambat) tidak boleh menimpa perubahan yang lebih baru dan membatalkan
+     * pekerjaan yang sedang berjalan.
+     *
+     * Sesi lokal dipertahankan. Snapshot tidak pernah membawa sesi (lihat
+     * `#commit`), jadi tanpa penjagaan ini perangkat akan terlempar keluar
+     * dari akunnya sendiri setiap kali perangkat lain menyimpan perubahan.
+     */
+    this.realtime.onSnapshot((snapshot) => {
+      if (snapshot.revision <= this.#state.revision) return;
+      const masuk = snapshot.state as Partial<MockState> | null;
+      if (!masuk || typeof masuk !== 'object') return;
+      if (!Array.isArray(masuk.menus) || !Array.isArray(masuk.orders)) return;
+
+      this.#state = { ...(masuk as MockState), session: this.#state.session };
+      this.#persist();
     });
   }
 
@@ -511,13 +442,36 @@ export class MockRepository implements Repository {
 
     this.#state.orders.unshift(order);
 
-    // 7. Kurangi stok untuk menu yang dilacak.
+    // 7. Kurangi stok untuk menu yang dilacak, dan catat pergerakannya.
+    //
+    //    Catatan ini yang menjawab pertanyaan "kenapa stok berkurang 5 padahal
+    //    penjualan hanya 3" — pertanyaan yang tidak bisa dijawab aplikasi
+    //    aslinya karena hanya menyimpan satu angka tanpa jejak.
+    const pergerakan: StockMovement[] = [];
     for (const item of items) {
       const menu = this.#state.menus.find((m) => m.id === item.menuId);
-      if (menu && menu.stock !== null) {
-        menu.stock = Math.max(0, menu.stock - item.qty);
-        if (menu.stock === 0) menu.isAvailable = false;
-      }
+      if (!menu || menu.stock === null) continue;
+
+      menu.stock = Math.max(0, menu.stock - item.qty);
+      if (menu.stock === 0) menu.isAvailable = false;
+
+      pergerakan.push({
+        // Id diturunkan dari order dan menu, sehingga kiriman ulang order yang
+        // sama tidak bisa mencatat penjualan dua kali.
+        id: `sm-${order.id}-${item.menuId}`,
+        storeId: input.storeId,
+        menuId: menu.id,
+        menuName: menu.name,
+        delta: -item.qty,
+        balance: menu.stock,
+        reason: 'sale',
+        note: `Order ${order.code}`,
+        actor: input.cashierName.trim() || 'Pesan sendiri',
+        at: now,
+      });
+    }
+    if (pergerakan.length > 0) {
+      this.#state.stockMovements.unshift(...pergerakan);
     }
 
     this.#commit('orders');
@@ -706,22 +660,28 @@ export class MockRepository implements Repository {
    * RLS), dan **tidak ada PIN atau kata sandi di dalam kode yang dikirim ke
    * browser**. Inilah perbaikan dari aplikasi aslinya, yang menaruh
    * `.getAdminData('123456', ...)` langsung di JavaScript client.
+   *
+   * Peran datang dari akunnya, bukan dari pilihan di layar masuk. Kalau
+   * pengguna bisa memilih sendiri "masuk sebagai pemilik", pemisahan peran
+   * tidak ada gunanya.
    */
   async signIn(storeId: ID, username: string, password: string, pin: string): Promise<Session> {
     await this.#delay(220);
 
-    const cocok =
-      username.trim().toLowerCase() === DEMO_CREDENTIALS.username &&
-      password === DEMO_CREDENTIALS.password &&
-      pin === DEMO_CREDENTIALS.pin;
+    const akun = DEMO_ACCOUNTS.find((a) => a.username === username.trim().toLowerCase());
 
-    if (!cocok) throw new RepositoryError('Nama pengguna, sandi, atau PIN salah', 'unauthorized');
+    // Semua kegagalan memakai pesan yang sama. Membedakan "nama pengguna tidak
+    // ada" dari "PIN salah" justru memberi tahu penyerang bagian mana yang
+    // sudah benar.
+    if (!akun || password !== akun.password || pin !== akun.pin) {
+      throw new RepositoryError('Nama pengguna, sandi, atau PIN salah', 'unauthorized');
+    }
 
     const session: Session = {
-      userId: 'user-demo-owner',
+      userId: akun.userId,
       storeId,
-      role: 'owner',
-      displayName: 'Pemilik',
+      role: akun.role,
+      displayName: akun.displayName,
       expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
     };
     this.#state.session = session;
@@ -760,15 +720,97 @@ export class MockRepository implements Repository {
     return s.enabled ? s.amount : 0;
   }
 
+  /* ---------------------------------------------------------------------- */
+  /* Stok                                                                    */
+  /* ---------------------------------------------------------------------- */
+
+  async listStockMovements(storeId: ID, menuId?: ID): Promise<StockMovement[]> {
+    await this.#delay();
+    return structuredClone(
+      this.#state.stockMovements
+        .filter((m) => m.storeId === storeId && (!menuId || m.menuId === menuId))
+        .sort((a, b) => b.at.localeCompare(a.at)),
+    );
+  }
+
+  async recordStockMovement(input: StockMovementInput): Promise<StockMovement> {
+    await this.#delay();
+
+    const menu = this.#state.menus.find((m) => m.id === input.menuId);
+    if (!menu) throw new RepositoryError('Menu tidak ditemukan', 'not_found');
+
+    // Menu tanpa pelacakan tidak bisa dicatat pergerakannya: saldonya tidak
+    // punya titik awal, jadi hasilnya akan tampak seperti stok yang muncul
+    // dari udara.
+    if (menu.stock === null) {
+      throw new RepositoryError('Menu ini tidak dilacak stoknya', 'invalid');
+    }
+
+    if (!Number.isInteger(input.delta) || input.delta === 0) {
+      throw new RepositoryError('Jumlah pergerakan harus bilangan bulat bukan nol', 'invalid');
+    }
+
+    const saldoBaru = menu.stock + input.delta;
+    if (saldoBaru < 0) {
+      throw new RepositoryError(
+        `Stok tidak cukup: tersisa ${menu.stock}, diminta ${Math.abs(input.delta)}`,
+        'conflict',
+      );
+    }
+
+    menu.stock = saldoBaru;
+    // Stok yang kembali terisi otomatis bisa dijual lagi. Sebaliknya, kalau
+    // stok habis, menu disembunyikan dari pelanggan.
+    if (saldoBaru > 0) menu.isAvailable = true;
+
+    const movement: StockMovement = {
+      id: `sm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      storeId: input.storeId,
+      menuId: menu.id,
+      menuName: menu.name,
+      delta: input.delta,
+      balance: saldoBaru,
+      reason: input.reason,
+      note: input.note,
+      actor: input.actor,
+      at: nowIso(),
+    };
+    this.#state.stockMovements.unshift(movement);
+
+    // Dua scope sekaligus: stok berubah, dan katalog ikut berubah karena
+    // saldo menu disimpan di sana.
+    this.#commit('stock');
+    this.#commit('menus');
+
+    return structuredClone(movement);
+  }
+
   /** Simpan + siarkan sinyal perubahan. */
   #commit(scope: RealtimeSignal['scope']): void {
     this.#state.revision += 1;
     this.#persist();
-    this.realtime.broadcast({
+
+    const signal: RealtimeSignal = {
       storeId: this.#state.settings.storeId,
       revision: this.#state.revision,
       scope,
       at: nowIso(),
+    };
+    this.realtime.publish(signal);
+
+    // Sesi TIDAK ikut dikirim. Sesi adalah milik perangkat ini, bukan milik
+    // toko — mengirimkannya berarti setiap perangkat lain menerima identitas
+    // pengguna yang sedang masuk di sini.
+    const { session: _sesiMilikPerangkatIni, ...tanpaSesi } = this.#state;
+    void _sesiMilikPerangkatIni;
+
+    // Snapshot penuh hanya berguna untuk jalur lintas-perangkat. Tanpa ini,
+    // perangkat kedua menerima "revisi 12" untuk data yang tidak pernah ia
+    // miliki, dan sinkronisasi lintas-perangkat tidak pernah benar-benar jalan.
+    this.realtime.publishSnapshot({
+      storeId: signal.storeId,
+      revision: signal.revision,
+      state: tanpaSesi,
     });
   }
 
@@ -787,6 +829,7 @@ export class MockRepository implements Repository {
       menus: structuredClone(seedMenus),
       tables: structuredClone(seedTables),
       orders: [],
+      stockMovements: [],
       sequence: { dateKey: dateKey(new Date(), DEFAULT_TZ), last: 0 },
       queue: { prefix: seedSettings.queue.prefix, lastNumber: 0, dateKey: dateKey(new Date(), DEFAULT_TZ) },
       displayOrderId: null,

@@ -16,8 +16,8 @@ import { currentAdapter } from '../../data/index.ts';
 import { Button, Field, Input } from '../../ui/components.tsx';
 import { Icon } from '../../ui/icons.tsx';
 import { messageOf, signIn } from '../../state/store.ts';
-
-const DEMO = { username: 'admin', password: 'admin123', pin: '123456' };
+import { DEMO_ACCOUNTS } from '../../data/mock/seed.ts';
+import { ROLE_LABEL, ROLE_TAGLINE, viewsOf } from '../../domain/permissions.ts';
 
 export interface LoginViewProps {
   onMasuk: () => void;
@@ -71,7 +71,7 @@ export function LoginView({ onMasuk }: LoginViewProps) {
               <Input
                 value={username}
                 onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
-                placeholder="admin"
+                placeholder="pemilik"
                 autoComplete="username"
                 autofocus
               />
@@ -132,40 +132,57 @@ export function LoginView({ onMasuk }: LoginViewProps) {
           </Button>
         </form>
 
-        {/* Kredensial demo --------------------------------------------- */}
+        {/* Akun demo per peran ------------------------------------------ */}
         {demo ? (
           <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
             <p class="flex items-center gap-2 text-xs font-bold tracking-wide text-white/60 uppercase">
               <Icon name="info" size={13} />
-              Mode demo
+              Mode demo — pilih peran
             </p>
-            <dl class="mt-2.5 space-y-1 text-sm">
-              {(
-                [
-                  ['Nama pengguna', DEMO.username],
-                  ['Sandi', DEMO.password],
-                  ['PIN', DEMO.pin],
-                ] as const
-              ).map(([label, nilai]) => (
-                <div key={label} class="flex items-center justify-between gap-3">
-                  <dt class="text-white/50">{label}</dt>
-                  <dd class="num font-bold text-white">{nilai}</dd>
-                </div>
-              ))}
-            </dl>
-            <Button
-              variant="outline"
-              size="sm"
-              icon="sparkles"
-              onClick={() => {
-                setUsername(DEMO.username);
-                setPassword(DEMO.password);
-                setPin(DEMO.pin);
-              }}
-              class="mt-3 w-full"
-            >
-              Isi otomatis
-            </Button>
+
+            <ul class="mt-3 space-y-1.5">
+              {DEMO_ACCOUNTS.map((a) => {
+                const terpilih = username === a.username;
+                return (
+                  <li key={a.userId}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsername(a.username);
+                        setPassword(a.password);
+                        setPin(a.pin);
+                        setGalat(null);
+                      }}
+                      class={[
+                        'w-full rounded-lg border px-3 py-2.5 text-left transition',
+                        terpilih
+                          ? 'border-brand-500/60 bg-brand-600/20'
+                          : 'border-white/10 hover:bg-white/8',
+                      ].join(' ')}
+                    >
+                      <span class="flex items-center gap-2">
+                        <Icon name="user" size={14} class="text-white/50" />
+                        <span class="text-sm font-bold text-white">{ROLE_LABEL[a.role]}</span>
+                        <span class="num ml-auto text-[11px] text-white/45">
+                          {a.username} · {a.pin}
+                        </span>
+                      </span>
+                      <span class="mt-0.5 block text-[11px] leading-snug text-white/50">
+                        {ROLE_TAGLINE[a.role]}
+                      </span>
+                      <span class="mt-1 block text-[11px] leading-snug text-white/40">
+                        Layar: {viewsOf(a.role).join(', ')}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <p class="mt-2.5 text-[11px] leading-snug text-white/40">
+              Peran menentukan layar yang boleh dibuka. Pola sandinya mengikuti nama akun, mis.{' '}
+              <span class="num">kasir123</span>.
+            </p>
           </div>
         ) : null}
       </div>

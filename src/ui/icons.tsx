@@ -77,7 +77,10 @@ export type IconName =
   | 'loader'
   | 'inbox'
   | 'flame'
-  | 'sparkles';
+  | 'sparkles'
+  | 'box'
+  | 'download'
+  | 'cloud-off';
 
 const PATHS: Record<IconName, string> = {
   coffee:
@@ -142,6 +145,10 @@ const PATHS: Record<IconName, string> = {
   inbox: 'M3 12h5l2 3h4l2-3h5 M3 12 5.5 5h13L21 12v7H3Z',
   flame: 'M12 22c4 0 6-2.7 6-6 0-4-3-6-3-9 0 0-1.5 1.5-1.5 3.5C13.5 8 12 6 12 3c0 0-6 4.5-6 10 0 3.3 2 6 6 6Z',
   sparkles: 'M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4Z M19 14l.9 2.3L22 17l-2.1.7L19 20l-.9-2.3L16 17l2.1-.7Z',
+  box: 'M3 7.5 12 3l9 4.5v9L12 21l-9-4.5Z M3 7.5 12 12l9-4.5 M12 12v9',
+  download: 'M12 3v12 M7.5 10.5 12 15l4.5-4.5 M4 20h16',
+  'cloud-off':
+    'M4 4l16 16 M18 17H7.5A4.5 4.5 0 0 1 7 8.05 M9.7 5.6A5 5 0 0 1 18.9 9.4 3.6 3.6 0 0 1 20 16.3',
 };
 
 export interface IconProps {

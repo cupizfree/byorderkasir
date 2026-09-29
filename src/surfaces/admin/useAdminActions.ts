@@ -19,6 +19,8 @@ import type {
   TableInput,
 } from '../../data/repository.ts';
 import { lastNDaysRange, monthRange, todayRange, yearRange } from '../../domain/time.ts';
+import type { Permission } from '../../domain/permissions.ts';
+import { can } from '../../state/store.ts';
 import type {
   Category,
   Discount,
@@ -72,6 +74,14 @@ export function rentangPeriode(p: Periode): { from?: string; to?: string } {
    ========================================================================= */
 
 export interface AdminActions {
+  /**
+   * Apakah pengguna yang sedang masuk boleh melakukan ini.
+   *
+   * Ada di sini, bukan di tiap komponen, supaya pemeriksaan izin tidak
+   * tersebar dan tidak bisa lupa dipasang di salah satu layar.
+   */
+  boleh: (permission: Permission) => boolean;
+
   /* Kasir */
   buatOrder: (input: {
     items: OrderItem[];
@@ -120,6 +130,8 @@ export function useAdminActions(): AdminActions {
     const sid = () => storeId.value;
 
     return {
+      boleh: can,
+
       /* --- Kasir -------------------------------------------------------- */
 
       async buatOrder(input) {

@@ -9,21 +9,33 @@
  */
 
 import { useEffect, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 
 import { ConnectionPill, LoadingBlock } from '../../ui/components.tsx';
 import { Icon, type IconName } from '../../ui/icons.tsx';
 import {
+  canView,
   connectRealtime,
   loadCatalog,
   loadOrders,
   loadSettings,
+  loadStock,
+  online,
+  pendingWrites,
   realtimeStatus,
+  realtimeTransport,
+  recordStockMovement,
+  resolveView,
   restoreSession,
   session,
   settings,
   signOut,
+  stockMovements,
   storeId,
+  watchConnectivity,
 } from '../../state/store.ts';
+import { ROLE_LABEL, type AdminView } from '../../domain/permissions.ts';
+import { StockView } from './StockView.tsx';
 import { AnalyticsView } from './AnalyticsView.tsx';
 import { KitchenView } from './KitchenView.tsx';
 import { LoginView } from './LoginView.tsx';
@@ -43,7 +55,7 @@ import { orderStats, orders, displayOrder, categories, menus, tables, loading } 
    Navigasi
    ========================================================================= */
 
-type Tab = 'kasir' | 'dapur' | 'order' | 'menu' | 'meja' | 'analitik' | 'pengaturan';
+type Tab = AdminView;
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'kasir', label: 'Kasir', icon: 'cart' },
@@ -51,6 +63,7 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'order', label: 'Order', icon: 'receipt' },
   { id: 'menu', label: 'Menu', icon: 'coffee' },
   { id: 'meja', label: 'Meja', icon: 'table' },
+  { id: 'stok', label: 'Stok', icon: 'box' },
   { id: 'analitik', label: 'Analitik', icon: 'chart' },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'settings' },
 ];
@@ -76,11 +89,21 @@ export function AdminShell() {
   useEffect(() => {
     void (async () => {
       await restoreSession();
-      await Promise.all([loadSettings(), loadCatalog()]);
+      await Promise.all([loadSettings(), loadCatalog(), loadStock()]);
       simpanPengaturanKeCache(settings.value);
       setSiap(true);
     })();
+    // Antrean tulis luring ikut dikirim begitu jaringan kembali.
+    return watchConnectivity();
   }, []);
+
+  /* --- Peran: pindahkan ke layar yang boleh dibuka ---------------------- */
+
+  useEffect(() => {
+    if (!session.value) return;
+    const boleh = resolveView(tab);
+    if (boleh !== tab) setTab(boleh);
+  }, [tab, session.value?.userId]);
 
   /* --- Realtime --------------------------------------------------------- */
 
@@ -89,6 +112,7 @@ export function AdminShell() {
     return connectRealtime({
       onOrders: loadOrders,
       onMenus: loadCatalog,
+      onStock: loadStock,
       onSettings: () => {
         void loadSettings();
         simpanPengaturanKeCache(settings.value);
@@ -106,12 +130,17 @@ export function AdminShell() {
   /* --- Tab di URL ------------------------------------------------------- */
 
   function pindahTab(t: Tab) {
-    setTab(t);
+    // Layar yang tidak diizinkan tidak ditolak dengan pesan galat, melainkan
+    // dialihkan ke layar pertama yang memang boleh dibuka. Menampilkan
+    // "akses ditolak" hanya memberi tahu apa yang tidak bisa dilakukan,
+    // tanpa memberi jalan keluar.
+    const boleh = resolveView(t);
+    setTab(boleh);
     const url = new URL(window.location.href);
-    url.searchParams.set('tab', t);
+    url.searchParams.set('tab', boleh);
     window.history.replaceState(null, '', url);
     // Kasir & dapur butuh daftar order penuh; analitik punya filternya sendiri.
-    if (t !== 'analitik') void loadOrders(aksi.filterHariIni());
+    if (boleh !== 'analitik') void loadOrders(aksi.filterHariIni());
   }
 
   /* --- Render ----------------------------------------------------------- */
@@ -152,7 +181,7 @@ export function AdminShell() {
 
           {/* Tab --------------------------------------------------------- */}
           <nav class="scrollbar-none -mx-1 flex flex-1 gap-1 overflow-x-auto px-1">
-            {TABS.map((t) => {
+            {TABS.filter((t) => canView(t.id)).map((t) => {
               const aktif = tab === t.id;
               const lencana =
                 t.id === 'dapur'
@@ -186,13 +215,14 @@ export function AdminShell() {
 
           {/* Kanan -------------------------------------------------------- */}
           <div class="flex shrink-0 items-center gap-2">
+            <IndikatorTulis />
             <ConnectionPill status={realtimeStatus.value} dark />
             <span class="hidden text-right lg:block">
               <span class="block text-xs leading-tight font-semibold">
                 {session.value.displayName}
               </span>
               <span class="block text-[11px] leading-tight text-white/50">
-                {session.value.role}
+                {ROLE_LABEL[session.value.role]}
               </span>
             </span>
             <button
@@ -264,12 +294,24 @@ export function AdminShell() {
           />
         ) : null}
 
+        {tab === 'stok' ? (
+          <StockView
+            menus={menus.value}
+            movements={stockMovements.value}
+            settings={s!}
+            actor={session.value.displayName}
+            bisaUbah={aksi.boleh('stock:adjust')}
+            onRecord={recordStockMovement}
+          />
+        ) : null}
+
         {tab === 'analitik' ? (
           <AnalyticsView
             orders={orders.value}
             loading={loading.value}
             periode={periode}
             onPeriode={setPeriode}
+            stockMovements={stockMovements.value}
           />
         ) : null}
 
@@ -283,4 +325,50 @@ export function AdminShell() {
       </main>
     </div>
   );
+}
+
+/* ==========================================================================
+   Indikator tulisan tertunda
+   ========================================================================= */
+
+/**
+ * Keadaan tulisan yang belum terkirim.
+ *
+ * Hanya muncul saat ada yang perlu diketahui. Menampilkan "0 menunggu" terus
+ * menerus hanya menambah kebisingan di bilah yang sudah padat — dan kasir
+ * berhenti membacanya justru saat angkanya penting.
+ */
+function IndikatorTulis(): JSX.Element | null {
+  const tertunda = pendingWrites.value;
+
+  if (tertunda > 0) {
+    return (
+      <span
+        class="flex items-center gap-1.5 rounded-lg bg-pending/20 px-2.5 py-1.5 text-xs font-semibold text-pending"
+        title={
+          realtimeTransport.value === 'websocket'
+            ? 'Tersimpan di perangkat ini, akan dikirim saat jaringan kembali.'
+            : 'Tersimpan di perangkat ini. Belum ada server realtime yang dikonfigurasi.'
+        }
+      >
+        <Icon name="clock" size={15} />
+        <span class="num">{tertunda}</span>
+        <span class="hidden sm:inline">menunggu</span>
+      </span>
+    );
+  }
+
+  if (!online.value) {
+    return (
+      <span
+        class="flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white/75"
+        title="Perangkat sedang luring. Pekerjaan tetap bisa dilakukan."
+      >
+        <Icon name="cloud-off" size={15} />
+        <span class="hidden sm:inline">Luring</span>
+      </span>
+    );
+  }
+
+  return null;
 }

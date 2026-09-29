@@ -13,13 +13,22 @@
  */
 
 import { useMemo, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 
 import { formatRupiah, summarizeReport } from '../../domain/money.ts';
 import { awaitingPayment, forRevenue } from '../../domain/orders.ts';
 import { dateKey, formatDateLong, lastNDaysRange, monthRange, todayRange, yearRange } from '../../domain/time.ts';
-import type { Order, PaymentMethod } from '../../domain/types.ts';
-import { Card, EmptyState, Money, Spinner } from '../../ui/components.tsx';
+import type { Order, PaymentMethod, StockMovement } from '../../domain/types.ts';
+import { Button, Card, EmptyState, Money, Select, Spinner } from '../../ui/components.tsx';
 import { Icon } from '../../ui/icons.tsx';
+import {
+  REPORT_HINT,
+  REPORT_LABEL,
+  type ReportKey,
+  buildReportSet,
+  downloadReportCsv,
+  downloadReportXlsx,
+} from './exportReports.ts';
 
 /* ==========================================================================
    Periode
@@ -71,9 +80,17 @@ export interface AnalyticsViewProps {
   loading: boolean;
   periode: Periode;
   onPeriode: (p: Periode) => void;
+  /** Riwayat stok, dipakai untuk laporan stok yang bisa diunduh. */
+  stockMovements?: readonly StockMovement[];
 }
 
-export function AnalyticsView({ orders, loading, periode, onPeriode }: AnalyticsViewProps) {
+export function AnalyticsView({
+  orders,
+  loading,
+  periode,
+  onPeriode,
+  stockMovements = [],
+}: AnalyticsViewProps) {
   /**
    * Semua angka uang memakai `lunas` — order yang uangnya sudah masuk.
    *
@@ -171,6 +188,9 @@ export function AnalyticsView({ orders, loading, periode, onPeriode }: Analytics
 
   return (
     <div class="space-y-4 p-4">
+      {/* Ekspor ------------------------------------------------------------ */}
+      <PanelEkspor orders={orders} movements={stockMovements} />
+
       {/* Periode ----------------------------------------------------------- */}
       <div class="flex flex-wrap items-center gap-2">
         {(Object.keys(LABEL_PERIODE) as Periode[]).map((p) => (
@@ -471,6 +491,104 @@ function Kpi({
       {/* Keterangan kecil di bawah angka. Dipakai untuk menyatakan dasar
           hitungnya, supaya tidak ada angka yang harus ditebak asalnya. */}
       {catatan ? <p class="mt-0.5 text-[11px] text-ink-500">{catatan}</p> : null}
+    </Card>
+  );
+}
+
+/* ==========================================================================
+   Ekspor laporan
+   ========================================================================= */
+
+const URUTAN_EKSPOR: readonly ReportKey[] = ['order', 'item', 'harian', 'menu', 'stok'];
+
+/**
+ * Unduh laporan sebagai CSV atau Excel.
+ *
+ * Aplikasi aslinya tidak punya tombol unduh sama sekali — pemilik yang ingin
+ * menghitung ulang HPP di Excel harus menyalin manual dari tabel HTML.
+ *
+ * Dua tombol, bukan satu, karena keduanya dipakai untuk hal berbeda: CSV
+ * untuk diolah lagi, Excel untuk dibuka apa adanya dan dibagikan.
+ */
+function PanelEkspor({
+  orders,
+  movements,
+}: {
+  orders: readonly Order[];
+  movements: readonly StockMovement[];
+}): JSX.Element {
+  const [mana, setMana] = useState<ReportKey>('order');
+  const [pesan, setPesan] = useState<string | null>(null);
+
+  const set = useMemo(() => buildReportSet(orders, movements), [orders, movements]);
+  const adaOrder = orders.length > 0;
+
+  function jalankan(kerjakan: () => void, teks: string): void {
+    try {
+      kerjakan();
+      setPesan(teks);
+    } catch (err) {
+      setPesan(err instanceof Error ? `Gagal: ${err.message}` : 'Gagal menyiapkan berkas');
+    }
+  }
+
+  return (
+    <Card>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-52 flex-1">
+          <label for="ekspor-pilih" class="mb-1.5 block text-sm font-semibold text-ink-700">
+            Laporan
+          </label>
+          <Select
+            id="ekspor-pilih"
+            value={mana}
+            onChange={(e) => setMana((e.currentTarget as HTMLSelectElement).value as ReportKey)}
+          >
+            {URUTAN_EKSPOR.map((k) => (
+              <option key={k} value={k}>
+                {REPORT_LABEL[k]}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div class="flex shrink-0 gap-2">
+          <Button
+            variant="ghost"
+            icon="download"
+            onClick={() => jalankan(() => downloadReportCsv(set[mana]), 'CSV diunduh.')}
+          >
+            CSV
+          </Button>
+          <Button
+            variant="primary"
+            icon="download"
+            disabled={!adaOrder && movements.length === 0}
+            onClick={() =>
+              jalankan(
+                () => downloadReportXlsx(set, URUTAN_EKSPOR),
+                'Excel diunduh (5 sheet).',
+              )
+            }
+          >
+            Excel
+          </Button>
+        </div>
+      </div>
+
+      <p class="mt-2.5 text-xs text-ink-500">
+        {REPORT_HINT[mana]}
+        {' '}
+        <span class="text-ink-400">
+          Excel memuat kelima laporan sebagai sheet terpisah.
+        </span>
+      </p>
+
+      {pesan ? (
+        <p class="mt-2 rounded-md bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-700">
+          {pesan}
+        </p>
+      ) : null}
     </Card>
   );
 }

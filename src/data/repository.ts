@@ -32,6 +32,8 @@ import type {
   Payment,
   RealtimeSignal,
   Session,
+  StockMovement,
+  StockReason,
   StoreSettings,
   UserRole,
 } from '../domain/types.ts';
@@ -100,6 +102,17 @@ export interface TableInput {
   status: DiningTable['status'];
 }
 
+export interface StockMovementInput {
+  storeId: ID;
+  menuId: ID;
+  /** Positif menambah, negatif mengurangi. Tidak boleh 0. */
+  delta: number;
+  reason: StockReason;
+  note: string;
+  /** Nama tampilan orang yang mencatat. */
+  actor: string;
+}
+
 /* ==========================================================================
    Status koneksi realtime
    ========================================================================= */
@@ -148,6 +161,20 @@ export interface Repository {
   /** Cari meja dari token di URL QR. */
   getTableByToken(token: string): Promise<DiningTable | null>;
 
+  /* --- Stok -------------------------------------------------------------- */
+
+  /** Riwayat pergerakan stok, terbaru lebih dulu. `menuId` menyaring satu menu. */
+  listStockMovements(storeId: ID, menuId?: ID): Promise<StockMovement[]>;
+
+  /**
+   * Catat pergerakan stok dan perbarui saldo menu dalam satu langkah.
+   *
+   * Saldo tidak boleh jadi negatif, dan implementasi yang menolaknya — bukan
+   * UI. Kalau pemeriksaannya ditaruh di tampilan, jalur lain (mis. sinkronisasi
+   * luring yang dikirim ulang) bisa menembusnya dan meninggalkan stok minus.
+   */
+  recordStockMovement(input: StockMovementInput): Promise<StockMovement>;
+
   /* --- Order ------------------------------------------------------------- */
 
   /**
@@ -195,19 +222,29 @@ export interface Repository {
    Kesalahan
    ========================================================================= */
 
+export type RepositoryErrorCode =
+  | 'not_found'
+  | 'unauthorized'
+  | 'conflict'
+  | 'invalid'
+  | 'network'
+  | 'server';
+
+/**
+ * Galat dari lapisan data.
+ *
+ * Field `code` ditulis eksplisit, bukan sebagai parameter property
+ * (`constructor(readonly code)`). Bentuk singkat itu didukung esbuild tetapi
+ * **tidak** didukung mode strip-only milik Node, sehingga berkas ini tidak
+ * bisa diimpor oleh pengujian.
+ */
 export class RepositoryError extends Error {
-  constructor(
-    message: string,
-    readonly code:
-      | 'not_found'
-      | 'unauthorized'
-      | 'conflict'
-      | 'invalid'
-      | 'network'
-      | 'server' = 'server',
-  ) {
+  readonly code: RepositoryErrorCode;
+
+  constructor(message: string, code: RepositoryErrorCode = 'server') {
     super(message);
     this.name = 'RepositoryError';
+    this.code = code;
   }
 }
 
