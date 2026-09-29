@@ -265,7 +265,19 @@ Diukur dari hasil build produksi, terkompresi:
 | Beranda | 2,0 KB |
 | Gaya (semua layar) | 13,2 KB |
 
-Pelanggan yang memesan dari meja hanya mengunduh sekitar **30 KB** — bukan seluruh aplikasi kasir.
+Pelanggan yang memesan dari meja **tidak** mengunduh seluruh aplikasi kasir. Yang benar-benar terkirim saat halaman pesan dibuka, diukur dari hasil build produksi:
+
+| Berkas | Terkompresi |
+|---|---|
+| Font Plus Jakarta Sans | 26,7 KB |
+| Gaya bersama | 13,3 KB |
+| Keadaan & data | 12,8 KB |
+| Preact | 8,1 KB |
+| Halaman pesan | 4,5 KB |
+| Thumbnail menu | 1,2 KB |
+| **Total** | **66,6 KB** |
+
+Satu berkas font memakan hampir setengahnya, karena diunduh utuh untuk seluruh rentang ketebalan. Memangkasnya lewat subsetting adalah cara termurah untuk menurunkannya lagi — masih di daftar rencana.
 
 ---
 
@@ -314,6 +326,7 @@ Aturan uang dan alur pesanan sengaja diletakkan di lapisan domain, bukan di dala
 - [ ] Riwayat stok & peringatan bahan menipis
 - [ ] Ekspor laporan ke CSV dan Excel
 - [ ] Mode luring dengan antrean tulis
+- [ ] Subset font agar halaman pelanggan turun dari 66,6 KB
 
 ### Batasan yang jujur
 
