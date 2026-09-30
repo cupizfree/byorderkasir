@@ -203,6 +203,18 @@ npm run preview     # pratinjau hasil build
 npm run realtime    # server websocket lintas-perangkat di port 8787
 ```
 
+Ada satu kelompok perintah lagi, untuk backend — lihat [`supabase/uji/`](supabase/uji/). Folder itu punya dependensinya sendiri (`pg`, `libpg-query`) supaya pemasangan aplikasi tidak ikut membawanya, jadi pasang dulu sekali:
+
+```bash
+npm --prefix supabase/uji install
+
+npm run db:parse    # periksa kedua berkas SQL dengan parser PostgreSQL asli
+npm run db:jalan    # terapkan schema.sql + seed.sql ke Postgres sungguhan
+npm run db:uji      # 81 uji fungsional: harga, stok, mesin keadaan, peran, izin
+```
+
+Semuanya butuh Postgres yang bisa dihubungi; arahnya diatur lewat `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`. `db:siapkan` — yang menjatuhkan database — sengaja tidak didaftarkan di sini; ia menolak berjalan kalau hostnya bukan mesin lokal.
+
 Server realtime itu opsional. Tanpa dijalankan, aplikasi memakai kanal antar-tab dan tetap bekerja — hanya saja dua perangkat berbeda tidak saling melihat. Untuk mencoba lintas-perangkat, jalankan `npm run realtime` di satu terminal, lalu setel alamatnya saat menjalankan dev server:
 
 ```bash
@@ -420,7 +432,7 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 
 **Berikutnya**
 
-- [ ] **Uji backend terhadap proyek Supabase sungguhan.** Skema dan seed sudah ditulis dan lolos parser PostgreSQL 18, tetapi belum pernah dijalankan terhadap basis data hidup — lihat "Batasan yang jujur" di bawah
+- [ ] **Uji backend terhadap proyek Supabase sungguhan.** Skema dan seed sudah dijalankan terhadap Postgres 18.4 sungguhan (97 pernyataan, 81 uji fungsional lolos), tetapi belum terhadap proyek Supabase — Realtime, PostgREST, dan peran bawaan Supabase belum tersentuh — lihat "Batasan yang jujur" di bawah
 - [ ] Pencocokan pembayaran masuk dari penyedia QRIS
 - [ ] Subset font agar halaman pelanggan turun dari 71,1 KB
 - [ ] Webhook QRIS supaya pembayaran tercatat sendiri tanpa kasir menekan "Lunas"
@@ -429,7 +441,7 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 
 Agar tidak ada salah paham sebelum Anda memakainya:
 
-- **Backend Supabase belum pernah dijalankan terhadap proyek Supabase sungguhan.** Yang sudah terbukti: kedua berkas SQL lolos parser PostgreSQL 18 (97 pernyataan, dan seluruh 25 tubuh fungsi PL/pgSQL ikut diurai), pemeriksaan tipe bersih, dan 267 tes lolos. Yang **belum** terbukti: perilakunya saat benar-benar berjalan di Supabase — kesalahan semantik seperti kolom yang salah nama atau fungsi yang belum dibuat baru akan muncul di situ. Perlakukan ini sebagai backend yang siap diuji, bukan yang sudah teruji.
+- **Backend Supabase sudah dijalankan terhadap Postgres sungguhan, tapi belum terhadap proyek Supabase.** Skema dan seed dijalankan pada Postgres 18.4 yang berjalan di mesin ini: 97 pernyataan mendarat bersih, lalu 81 uji fungsional memanggil fungsinya satu per satu — membuat order, memotong stok, menolak transisi status yang tidak sah, mengembalikan stok saat dibatalkan, menolak pengunjung anonim. Uji itu menemukan lima cacat yang tidak terlihat oleh parser mana pun, termasuk satu yang membuat **setiap** `create_order` gagal. Yang **belum** terbukti: perilakunya di dalam Supabase sendiri — Realtime, PostgREST, peran bawaan Supabase, dan jalur jaringan dari peramban belum tersentuh sama sekali. Perlakukan ini sebagai backend yang sudah terbukti logikanya, bukan yang sudah terbukti di produksi.
 - **Mode demo tetap punya batasan lamanya.** Tanpa `VITE_DATA_ADAPTER=supabase`, data masih hidup di `localStorage` peramban: satu perangkat satu salinan, dan yang menang saat bentrok adalah yang terakhir dikirim. Harga juga masih dihitung di peramban. Semua itu hilang begitu backend dinyalakan.
 - **Server realtime-nya masih perlu dijalankan sendiri** untuk mode mock. `npm run realtime` menyalakannya di port 8787; kalau tidak ada, aplikasi turun ke jalur antar-tab dan tetap jalan. Di adapter Supabase ini tidak berlaku — Realtime-nya ditangani Supabase.
 - **Akun demo memakai kredensial yang terbuka di repositori ini.** Di Supabase, sandi dan PIN-nya tersimpan sebagai hash bcrypt dan verifikasinya di server, tapi selama Anda belum menggantinya, siapa pun yang pernah membaca README ini tahu cara masuk sebagai pemilik. Cara menggantinya ada di komentar bagian "Akun demo" di `supabase/seed.sql`.

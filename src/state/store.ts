@@ -35,6 +35,7 @@ import type {
   Menu,
   Order,
   OrderStatus,
+  QueueBoardOrder,
   RealtimeSignal,
   Session,
   StockMovement,
@@ -79,7 +80,7 @@ export const tables = signal<DiningTable[]>([]);
 export const orders = signal<Order[]>([]);
 /** Riwayat pergerakan stok, terbaru di depan. */
 export const stockMovements = signal<StockMovement[]>([]);
-export const queueBoard = signal<Order[]>([]);
+export const queueBoard = signal<QueueBoardOrder[]>([]);
 export const displayOrder = signal<Order | null>(null);
 export const session = signal<Session | null>(null);
 

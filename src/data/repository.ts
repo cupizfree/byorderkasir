@@ -30,6 +30,7 @@ import type {
   OrderItem,
   OrderStatus,
   Payment,
+  QueueBoardOrder,
   RealtimeSignal,
   Session,
   StockMovement,
@@ -208,7 +209,7 @@ export interface Repository {
    * Order yang masih perlu ditampilkan di layar antrian TV:
    * sedang dipanggil, dan yang menunggu disajikan.
    */
-  listQueueBoard(storeId: ID): Promise<Order[]>;
+  listQueueBoard(storeId: ID): Promise<QueueBoardOrder[]>;
   /** Tandai nomor antrian sedang dipanggil (memicu bel + suara di TV). */
   callQueue(id: ID): Promise<void>;
 

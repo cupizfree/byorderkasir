@@ -28,3 +28,8 @@ Thumbs.db
 # Log
 *.log
 npm-debug.log*
+
+# Klaster Postgres lokal untuk uji backend — dibuat oleh supabase/uji, berisi
+# data sekali pakai dan tidak boleh ikut ke repositori.
+supabase/uji/pgdata/
+supabase/uji/sock/

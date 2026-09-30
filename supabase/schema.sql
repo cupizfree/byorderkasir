@@ -507,13 +507,23 @@ begin
   return v;
 end $$;
 
--- Peran yang boleh mengubah katalog: pemilik dan kasir. Dapur tidak — dapur
--- mengubah status pesanan, bukan harga menu.
+-- Hanya PEMILIK yang boleh mengubah katalog.
+--
+-- Awalnya di sini tertulis `('owner', 'cashier')`, dan itu keliru: klien
+-- dengan sengaja TIDAK memberi kasir izin `menu:write`, dengan alasan yang
+-- ditulis di src/domain/permissions.ts — kasir yang bisa mengubah harga akan
+-- membuat laporan tidak bisa dipercaya. Layar Menu pun tidak muncul untuk
+-- kasir, jadi tidak ada tombol yang bisa ditekan.
+--
+-- Tapi tanpa tombol bukan berarti tidak bisa. Kunci anon ikut terkirim ke
+-- setiap peramban, dan token kasir ada di peramban kasir; dengan keduanya,
+-- siapa pun yang membuka DevTools bisa memanggil save_menu dan mengubah harga.
+-- Server yang lebih longgar daripada klien adalah lubang, bukan kelonggaran.
 create or replace function app.can_edit_catalog(p_role text)
 returns boolean
 language sql immutable
 as $$
-  select p_role in ('owner', 'cashier');
+  select p_role = 'owner';
 $$;
 
 -- ---------------------------------------------------------------------------
@@ -617,14 +627,43 @@ as $$
   where o.id = p_order_id;
 $$;
 
--- Versi ringkas untuk papan antrian TV. Papan ini memang publik — ia
--- ditampilkan di layar yang dilihat pelanggan — tapi alamat surel pelanggan
--- tidak punya kegunaan apa pun di sana, jadi tidak ikut dikirim.
+-- Versi ringkas untuk papan antrian TV.
+--
+-- Papan ini memang publik — ia ditampilkan di layar yang dilihat pelanggan,
+-- dan bisa dibaca tanpa sesi. Sebelumnya di sini tertulis
+-- `app.order_json(...) || jsonb_build_object('customerEmail','')`: hanya surel
+-- yang dihapus, sedangkan NAMA PELANGGAN, seluruh harga, dan rincian
+-- pembayaran ikut terkirim. Layarnya tidak menampilkan satu pun dari itu —
+-- yang dibacanya hanya nomor antrian, meja, status, dan nama item.
+--
+-- Jadi yang dikirim sekarang hanya itu. Endpoint publik tidak boleh membawa
+-- data yang tidak dibutuhkan layarnya: yang tidak dikirim tidak bisa bocor.
 create or replace function app.board_order_json(p_order_id text)
 returns jsonb
 language sql stable security definer set search_path = app, public
 as $$
-  select app.order_json(p_order_id) || jsonb_build_object('customerEmail', '');
+  select jsonb_build_object(
+    'id',          o.id,
+    'storeId',     o.store_id,
+    'code',        o.code,
+    'channel',     o.channel,
+    'queueNumber', o.queue_number,
+    'tableNumber', o.table_number,
+    'status',      o.status,
+    'calledAt',    app.iso(o.called_at),
+    'callCount',   o.call_count,
+    'createdAt',   app.iso(o.created_at),
+    'completedAt', app.iso(o.completed_at),
+    -- Nama dan jumlahnya saja: itulah yang ditulis di layar ("2× Espresso").
+    -- Harga, HPP, dan catatan tidak punya urusan di ruang tunggu.
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object('name', i.name, 'qty', i.qty) order by i.line_no)
+        from public.order_items i
+       where i.order_id = o.id
+    ), '[]'::jsonb)
+  )
+  from public.orders o
+  where o.id = p_order_id;
 $$;
 
 -- ============================================================================
@@ -872,7 +911,10 @@ begin
   select app.new_id('sm'), p_store, u.id, u.name, -u.qty, u.stock, 'sale',
          'Order ' || v_code, coalesce(nullif(p_actor, ''), 'Pesan sendiri'), v_order_id
     from diubah u
-  on conflict (order_id, menu_id) where order_id is not null do nothing;
+  -- Kolom di sini HARUS sama persis dengan indeks uniknya, termasuk kolom
+  -- `reason` dan klausa `where` parsialnya. Kalau tidak, Postgres menolak
+  -- dengan 42P10 dan seluruh order gagal dibuat — bukan sekadar baris ini.
+  on conflict (order_id, menu_id, reason) where order_id is not null do nothing;
 
   perform app.bump(p_store, 'orders');
   perform app.bump(p_store, 'menus');
@@ -1308,7 +1350,11 @@ language sql stable security definer set search_path = app, public
 as $$
   select coalesce(jsonb_agg(app.movement_json(s) order by s.at desc), '[]'::jsonb)
     from public.stock_movements s
-   where s.store_id = app.require_session(p_token).store_id
+   -- Tanda kurung di sekitar pemanggilan fungsi wajib di sini. Menulis
+   -- `app.require_session(p_token).store_id` ditolak parser — Postgres hanya
+   -- mengizinkan pemilihan kolom setelah pemanggilan fungsi bila hasilnya
+   -- dikurung lebih dulu. Tanpa itu: `syntax error at or near "."`.
+   where s.store_id = (app.require_session(p_token)).store_id
      and (p_menu_id is null or s.menu_id = p_menu_id);
 $$;
 
@@ -1318,7 +1364,7 @@ language sql stable security definer set search_path = app, public
 as $$
   select coalesce(jsonb_agg(app.table_json(t) order by t.number), '[]'::jsonb)
     from public.dining_tables t
-   where t.store_id = app.require_session(p_token).store_id;
+   where t.store_id = (app.require_session(p_token)).store_id;
 $$;
 
 -- Daftar revisi per cakupan, dipakai saat Realtime tidak tersedia sehingga
@@ -1497,7 +1543,10 @@ begin
 
   select c.* into v_row from public.categories c where c.id = v_id;
   perform app.bump(v_sesi.store_id, 'menus');
-  return app.category_json(v_row);
+  -- Barisnya apa adanya — lihat penjelasan di `save_menu`. `app.category_json`
+  -- juga tidak pernah ada, dan pemanggilannya membuat penyimpanan kategori
+  -- selalu gagal dengan 42883.
+  return to_jsonb(v_row);
 end $$;
 
 -- Menu yang kategorinya dihapus tidak ikut terhapus: kuncinya ON DELETE SET
@@ -1570,6 +1619,19 @@ begin
            description  = coalesce(p_input ->> 'description', description),
            image_url    = nullif(p_input ->> 'imageUrl', ''),
            is_available = coalesce((p_input ->> 'isAvailable')::boolean, is_available),
+           -- `stock` sengaja TIDAK di-coalesce, berbeda dari kolom di atasnya.
+           -- `null` di sini punya arti: menu itu berhenti dilacak stoknya.
+           -- Kalau di-coalesce, menu yang sudah dilacak tidak akan pernah bisa
+           -- berhenti dilacak — dan itu artinya nilai yang sah tidak bisa
+           -- dikirim sama sekali.
+           --
+           -- Konsekuensinya: pemanggil WAJIB mengirim MenuInput yang lengkap,
+           -- termasuk `name` dan `imageUrl` yang juga ditulis tanpa coalesce.
+           -- Kiriman sebagian akan mengosongkan kolom yang tidak disertakan —
+           -- dan pada `stock` itu berarti menunya diam-diam berhenti dilacak,
+           -- tanpa galat, tanpa jejak. Ini pernah terjadi pada uji backend dan
+           -- gejalanya baru muncul di jalan berikutnya, sebagai "stok tidak
+           -- berkurang" yang sama sekali tidak menunjuk ke sebabnya.
            stock        = (p_input ->> 'stock')::integer,
            sort_order   = coalesce((p_input ->> 'sortOrder')::integer, sort_order),
            updated_at   = now()
@@ -1582,7 +1644,19 @@ begin
 
   select m.* into v_row from public.menus m where m.id = v_id;
   perform app.bump(v_sesi.store_id, 'menus');
-  return app.menu_json(v_row);
+  -- Mengembalikan BARISNYA, bukan json camelCase.
+  --
+  -- Sebelumnya di sini tertulis `app.menu_json(v_row)`, dan fungsi itu tidak
+  -- ada — sisa dari tiga fungsi baca yang dihapus ketika katalog dipindahkan
+  -- ke pembacaan langsung lewat PostgREST. Akibatnya `save_menu` selalu gagal
+  -- dengan 42883, dan pemilik tidak bisa menyimpan menu sama sekali.
+  --
+  -- Yang benar adalah mengembalikan baris apa adanya: adapter di
+  -- src/data/supabase/supabaseRepository.ts memetakannya sendiri lewat
+  -- `toMenu` di rows.ts. Kalau SQL ikut memetakan, pemetaannya terjadi dua
+  -- kali — dan yang di SQL akan menang tanpa terlihat, sehingga perubahan di
+  -- rows.ts tidak lagi berpengaruh.
+  return to_jsonb(v_row);
 end $$;
 
 -- Menu dihapus dari katalog, tapi riwayat transaksinya tetap utuh:
@@ -1615,7 +1689,14 @@ as $$
 declare
   v_sesi app.sessions;
 begin
+  -- Tombol ketersediaan ada di layar Menu, dan layar Menu hanya muncul untuk
+  -- pemilik. Sebelumnya di sini hanya `require_session` tanpa pemeriksaan
+  -- peran, jadi juru masak pun bisa menyembunyikan menu dari katalog —
+  -- padahal tidak ada satu pun tombol di layarnya untuk itu.
   v_sesi := app.require_session(p_token);
+  if not app.can_edit_catalog(v_sesi.role) then
+    raise exception 'Peran % tidak berhak mengubah katalog', v_sesi.role using errcode = '42501';
+  end if;
 
   update public.menus
      set is_available = p_is_available, updated_at = now()
@@ -1705,10 +1786,15 @@ declare
   v_saldo integer;
   v_id    text;
 begin
-  -- Semua peran yang sudah masuk boleh mencatat stok: mencatat susut (waste)
-  -- adalah pekerjaan dapur, dan memaksa kasir mencatatkannya hanya membuat
-  -- catatannya jadi tidak jujur.
-  v_sesi := app.require_session(p_token);
+  -- Pemilik, kasir, dan juru masak boleh mencatat stok — semuanya punya
+  -- `stock:adjust` di src/domain/permissions.ts. Mencatat susut (waste) adalah
+  -- pekerjaan dapur, dan memaksa kasir mencatatkannya hanya membuat catatannya
+  -- jadi tidak jujur.
+  --
+  -- Daftarnya ditulis eksplisit, bukan sekadar `require_session`: dengan
+  -- pemeriksaan sesi saja, peran keempat yang ditambahkan kelak akan otomatis
+  -- bisa mencatat stok tanpa ada yang memutuskan itu.
+  v_sesi := app.require_role(p_token, array['owner', 'cashier', 'kitchen']);
 
   select m.* into v_menu
     from public.menus m

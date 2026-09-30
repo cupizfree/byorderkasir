@@ -25,6 +25,7 @@ import type {
   Order,
   OrderStatus,
   Payment,
+  QueueBoardOrder,
   Session,
   StockMovement,
   StoreSettings,
@@ -279,8 +280,10 @@ export class SupabaseRepository implements Repository {
     });
   }
 
-  async listQueueBoard(storeId: ID): Promise<Order[]> {
-    return rpc<Order[]>('list_queue_board', { p_store: storeId });
+  async listQueueBoard(storeId: ID): Promise<QueueBoardOrder[]> {
+    // Server hanya mengirim kolom yang ditampilkan papan antrian; bentuknya
+    // dijelaskan oleh `QueueBoardOrder`, bukan `Order`.
+    return rpc<QueueBoardOrder[]>('list_queue_board', { p_store: storeId });
   }
 
   async callQueue(id: ID): Promise<void> {

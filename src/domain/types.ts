@@ -51,6 +51,37 @@ export interface OrderItem {
   costPrice: number;
 }
 
+/**
+ * Order sebagaimana dikirim ke papan antrian TV.
+ *
+ * Sengaja hanya sebagian. Papan itu dibaca tanpa sesi — alamatnya dibuka di
+ * TV ruang tunggu dan siapa pun bisa memanggilnya — jadi server tidak
+ * mengirim nama pelanggan, harga, maupun rincian pembayaran. Layarnya juga
+ * tidak menampilkan satu pun dari itu; yang ditulisnya hanya nomor antrian,
+ * meja, status, dan nama item beserta jumlahnya.
+ *
+ * Tipenya dibuat terpisah supaya ketidaklengkapan ini terlihat oleh
+ * pemeriksa tipe. Kalau tanda tangannya tetap `Order`, TypeScript akan
+ * mengizinkan `papan[0].subtotal` — dan hasilnya `undefined` saat berjalan,
+ * tanpa satu pun peringatan.
+ */
+export type QueueBoardOrder = Pick<
+  Order,
+  | 'id'
+  | 'storeId'
+  | 'code'
+  | 'channel'
+  | 'queueNumber'
+  | 'tableNumber'
+  | 'status'
+  | 'calledAt'
+  | 'callCount'
+  | 'createdAt'
+  | 'completedAt'
+> & {
+  items: ReadonlyArray<Pick<OrderItem, 'name' | 'qty'>>;
+};
+
 export interface PaymentSplit {
   method: Exclude<PaymentMethod, 'split'>;
   amount: number;

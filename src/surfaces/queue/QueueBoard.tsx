@@ -25,7 +25,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
 import { compareQueueLabels } from '../../domain/queue.ts';
 import { formatTime, nowIso } from '../../domain/time.ts';
-import type { Order } from '../../domain/types.ts';
+import type { QueueBoardOrder } from '../../domain/types.ts';
 import { Icon } from '../../ui/icons.tsx';
 import { announceQueue, isAudioUnlocked, isSpeechSupported, playChime, unlockAudio } from './announcer.ts';
 
@@ -47,11 +47,11 @@ function useClock(): Date {
    ========================================================================= */
 
 /** Jumlah item pada kartu kolom — dibaca sekilas, jadi hanya totalnya. */
-function totalItem(o: Order): number {
+function totalItem(o: QueueBoardOrder): number {
   return o.items.reduce((n, it) => n + it.qty, 0);
 }
 
-function KartuKolom({ order, warna }: { order: Order; warna: string }) {
+function KartuKolom({ order, warna }: { order: QueueBoardOrder; warna: string }) {
   return (
     <div class={['flex items-center gap-4 rounded-xl border-2 px-4 py-3.5', warna].join(' ')}>
       {/* Nomor antrian dinaikkan ke text-5xl. Di TV yang dilihat dari 4–5
@@ -109,7 +109,7 @@ function Kolom({
    ========================================================================= */
 
 export interface QueueBoardProps {
-  orders: readonly Order[];
+  orders: readonly QueueBoardOrder[];
   storeName: string;
   /** Baris kecil di bawah nama toko, mis. "Kopi & Dapur Kecil". */
   tagline?: string;

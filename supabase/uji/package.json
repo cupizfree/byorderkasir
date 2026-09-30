@@ -1,0 +1,16 @@
+{
+  "name": "byorderkasir-uji-backend",
+  "private": true,
+  "type": "module",
+  "description": "Uji backend byorderkasir terhadap Postgres sungguhan: parse SQL, terapkan skema, panggil fungsinya.",
+  "scripts": {
+    "parse": "node parse-sql.mjs ../schema.sql ../seed.sql",
+    "siapkan": "node siapkan.mjs",
+    "jalan": "node jalan-sql.mjs ../schema.sql ../seed.sql",
+    "uji": "node uji-fungsi.mjs"
+  },
+  "devDependencies": {
+    "libpg-query": "^18.1.5",
+    "pg": "^8.23.0"
+  }
+}
