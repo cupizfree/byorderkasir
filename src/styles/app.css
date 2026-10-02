@@ -72,6 +72,46 @@
   --color-unpaid: #9a3412;
   --color-unpaid-bg: #fff7ed;
 
+  /* --- Semantik permukaan -------------------------------------------------
+     Tiga token ini yang membuat satu tema bisa gelap dan tema lain terang
+     tanpa menyentuh satu pun layar.
+
+     Sebelumnya layar memakai `bg-white` langsung untuk kartu dan panel. Itu
+     bekerja selama hanya ada satu tema, tapi begitu ada tema gelap, 29 tempat
+     itu tetap putih — kartu putih menyala di tengah halaman gelap. Karena itu
+     permukaannya sekarang punya nama: `surface` untuk kartu & panel,
+     `solid` + `on-solid` untuk lencana terbalik (mis. label meja) yang harus
+     selalu berlawanan dengan permukaannya.
+
+     Nilai di bawah adalah bawaan tema terang; tema lain menimpanya. */
+  --color-surface: #ffffff;
+  --color-solid: #0f172a;
+  --color-on-solid: #ffffff;
+
+  /* --- Lencana kecil (nomor meja di kartu dapur) --------------------------
+     Sengaja BUKAN `solid`. Di tema gelap `solid` menjadi hampir putih, dan
+     lencana sekecil ini akan jadi elemen paling terang di seluruh layar —
+     lebih terang daripada penghitung waktu, padahal waktu yang harus paling
+     menonjol. Di tema gelap lencana ini jadi permukaan terangkat tipis,
+     bukan blok putih. */
+  --color-chip: #0f172a;
+  --color-on-chip: #ffffff;
+
+  /* --- Teks di atas warna status -----------------------------------------
+     Sama alasannya dengan `solid`: warna status dipakai sebagai LATAR tombol
+     (mis. "Mulai masak" berlatar `pending`) sekaligus sebagai WARNA TEKS
+     (mis. "Lambat" berwarna `pending`). Di tema terang keduanya butuh putih;
+     di tema gelap warna statusnya jadi menyala terang, dan putih di atasnya
+     gagal kontras — putih di atas #f5a524 hanya 1.98:1. Karena itu teksnya
+     dipisah jadi token sendiri.
+
+     Nilai di bawah adalah untuk tema terang; tema gelap menimpanya. */
+  --color-on-pending: #ffffff;
+  --color-on-processing: #ffffff;
+  --color-on-ready: #ffffff;
+  --color-on-done: #ffffff;
+  --color-on-cancelled: #ffffff;
+
   /* --- Bentuk & gerak ----------------------------------------------------- */
   --radius-xs: 6px;
   --radius-sm: 8px;
@@ -91,6 +131,158 @@
   --shadow-glow: 0 6px 20px rgb(234 88 12 / 0.28);
 
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================================
+   Tema
+   ----------------------------------------------------------------------------
+   Aturan di bawah ini SENGAJA ditulis di luar `@layer` mana pun.
+
+   Tailwind menaruh variabel `@theme` di dalam `@layer theme`. Dalam CSS,
+   aturan yang tidak berlapis selalu mengalahkan aturan yang berlapis — jadi
+   menulisnya polos seperti ini sudah cukup untuk menimpa token, tanpa perlu
+   `!important` dan tanpa perlu menaikkan kekhususan selektor.
+
+   `--color-brand-*` TIDAK ditimpa di sini. Warna merek itu identitas toko:
+   nota, QRIS, dan logo memakainya. Kalau tema ikut menggantinya, ketiganya
+   tidak lagi sewarna dengan layarnya. Yang berubah adalah permukaan, teks,
+   garis, bayangan, dan warna status.
+   ========================================================================= */
+
+/* --- Terang: kartu putih mengambang di kanvas sejuk ---------------------- */
+[data-theme='terang'] {
+  --color-ink-50: #f4f5f7;
+  --color-ink-100: #eceef2;
+  --color-ink-200: #e0e3e9;
+  --color-ink-300: #c8cdd6;
+  --color-ink-400: #97a0ac;
+  --color-ink-500: #6a7280;
+  --color-ink-600: #545c69;
+  --color-ink-700: #3f4652;
+  --color-ink-800: #2a303b;
+  --color-ink-900: #0f172a;
+  --color-ink-950: #0b1220;
+
+  --color-surface: #ffffff;
+  --color-solid: #0f172a;
+  --color-on-solid: #ffffff;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 22px -6px rgb(16 24 40 / 0.09);
+  --shadow-lift: 0 1px 3px rgb(16 24 40 / 0.05), 0 14px 34px -10px rgb(16 24 40 / 0.14);
+  --shadow-pop: 0 8px 24px rgb(16 24 40 / 0.1), 0 24px 48px rgb(16 24 40 / 0.12);
+}
+
+/* --- Gelap: papan tiga kolom di atas permukaan gelap netral -------------- */
+[data-theme='gelap'] {
+  color-scheme: dark;
+
+  --color-ink-50: #0a0b0d;
+  --color-ink-100: #14161a;
+  --color-ink-200: #22252b;
+  --color-ink-300: #31353d;
+  --color-ink-400: #78808f;
+  --color-ink-500: #878e9a;
+  --color-ink-600: #a3aab5;
+  --color-ink-700: #bdc3cc;
+  --color-ink-800: #d6dbe2;
+  --color-ink-900: #f2f3f5;
+  --color-ink-950: #17191d;
+
+  --color-surface: #14161a;
+  --color-solid: #f2f3f5;
+  --color-on-solid: #0a0b0d;
+  --color-chip: rgb(255 255 255 / 0.13);
+  --color-on-chip: #f2f3f5;
+
+  /* Tint status dibalik: dulu latar tipis terang + teks pekat, sekarang latar
+     tipis gelap + teks menyala. Rasio kontrasnya dijaga tetap di atas 4.5:1. */
+  --color-pending: #f5a524;
+  --color-pending-bg: #241a06;
+  --color-processing: #7b9dff;
+  --color-processing-bg: #0e1526;
+  --color-ready: #a78bfa;
+  --color-ready-bg: #17102a;
+  --color-done: #3dd68c;
+  --color-done-bg: #06201a;
+  --color-cancelled: #ff5f57;
+  --color-cancelled-bg: #260d0c;
+  --color-paid: #3dd68c;
+  --color-paid-bg: #06201a;
+  --color-unpaid: #f5a524;
+  --color-unpaid-bg: #241a06;
+
+  --color-on-pending: #241a06;
+  --color-on-processing: #0e1526;
+  --color-on-ready: #17102a;
+  --color-on-done: #06201a;
+  --color-on-cancelled: #260d0c;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 28px -8px rgb(0 0 0 / 0.65);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.55), 0 18px 44px -14px rgb(0 0 0 / 0.8);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.6), 0 28px 60px -16px rgb(0 0 0 / 0.85);
+}
+
+/* --- Fokus: hampir hitam, dengan pendar warna ---------------------------- */
+[data-theme='fokus'] {
+  color-scheme: dark;
+
+  --color-ink-50: #08090c;
+  --color-ink-100: #12111a;
+  --color-ink-200: #24222f;
+  --color-ink-300: #33313f;
+  --color-ink-400: #7e7b8d;
+  --color-ink-500: #8a8798;
+  --color-ink-600: #a6a3b2;
+  --color-ink-700: #c0bdcb;
+  --color-ink-800: #d8d6e0;
+  --color-ink-900: #f4f5f7;
+  --color-ink-950: #15141d;
+
+  --color-surface: #12111a;
+  --color-solid: #f4f5f7;
+  --color-on-solid: #08090c;
+  --color-chip: rgb(255 255 255 / 0.13);
+  --color-on-chip: #f4f5f7;
+
+  --color-pending: #ffb020;
+  --color-pending-bg: #2a1c05;
+  --color-processing: #8ba7ff;
+  --color-processing-bg: #101528;
+  --color-ready: #b39cff;
+  --color-ready-bg: #1a1230;
+  --color-done: #3dd68c;
+  --color-done-bg: #06211b;
+  --color-cancelled: #ff6b4a;
+  --color-cancelled-bg: #2b0f0a;
+  --color-paid: #3dd68c;
+  --color-paid-bg: #06211b;
+  --color-unpaid: #ffb020;
+  --color-unpaid-bg: #2a1c05;
+
+  --color-on-pending: #2a1c05;
+  --color-on-processing: #101528;
+  --color-on-ready: #1a1230;
+  --color-on-done: #06211b;
+  --color-on-cancelled: #2b0f0a;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.55), 0 14px 34px -10px rgb(0 0 0 / 0.75);
+  --shadow-lift: 0 2px 5px rgb(0 0 0 / 0.6), 0 22px 52px -16px rgb(0 0 0 / 0.85);
+  --shadow-pop: 0 14px 36px rgb(0 0 0 / 0.65), 0 32px 68px -18px rgb(0 0 0 / 0.9);
+}
+
+/* Pendar aurora tema Fokus.
+   Dipasang sebagai `background-image` pada body, bukan sebagai elemen
+   ber-`position:fixed`. Alasannya: elemen fixed butuh konteks penumpukan
+   sendiri, dan itu mudah salah di aplikasi ber-modal — modal bisa tertinggal
+   di belakang pendar. Sebagai latar body, tidak ada lapisan baru sama sekali. */
+[data-theme='fokus'] body {
+  background-color: var(--color-ink-50);
+  background-image:
+    radial-gradient(900px 620px at 14% 4%, rgb(255 107 74 / 0.2), transparent 70%),
+    radial-gradient(820px 560px at 84% 0%, rgb(225 29 116 / 0.16), transparent 70%),
+    radial-gradient(900px 640px at 62% 100%, rgb(139 92 246 / 0.2), transparent 72%),
+    radial-gradient(700px 520px at 2% 92%, rgb(34 211 238 / 0.09), transparent 72%);
+  background-attachment: fixed;
 }
 
 /* ============================================================================
@@ -154,7 +346,7 @@
    atau tidak sama sekali. Itu yang membuat jarak antar layar tidak konsisten.
    Yang butuh rapat (daftar berbaris) menimpanya dengan `!p-0`. */
 @utility card {
-  @apply rounded-xl border border-ink-200/80 bg-white p-5 shadow-card;
+  @apply rounded-xl border border-ink-200/80 bg-surface p-5 shadow-card;
 }
 
 /* Kartu yang bisa diklik — terangkat saat disorot. */

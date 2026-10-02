@@ -5,6 +5,7 @@
 import { render } from 'preact';
 
 import '../../styles/app.css';
+import '../../state/theme.ts';
 import { loadRepository } from '../../data/load.ts';
 import { AdminShell } from './AdminShell.tsx';
 

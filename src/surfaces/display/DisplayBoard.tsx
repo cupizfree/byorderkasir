@@ -259,7 +259,7 @@ function OrderScreen({ order, settings }: { order: Order; settings: StoreSetting
 
           {/* QRIS ---------------------------------------------------------- */}
           {qr ? (
-            <div class="mt-4 flex flex-col items-center gap-3 rounded-lg border border-ink-200 bg-white p-5">
+            <div class="mt-4 flex flex-col items-center gap-3 rounded-lg border border-ink-200 bg-surface p-5">
               <QrCode value={qr.payload} size={230} label={`QRIS ${formatRupiah(qr.amount)}`} />
               <div class="text-center">
                 <p class="text-xs font-semibold tracking-wider text-ink-500 uppercase">

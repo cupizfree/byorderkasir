@@ -224,7 +224,7 @@ export function MenuView(p: MenuViewProps) {
               value={cari}
               onInput={(e) => setCari((e.target as HTMLInputElement).value)}
               placeholder="Cari menu…"
-              class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
+              class="w-full rounded-lg border border-ink-200 bg-surface py-2.5 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
             />
           </div>
           <Button variant="primary" size="md" icon="plus" onClick={menuBaru} disabled={p.categories.length === 0}>
@@ -500,7 +500,7 @@ function FormMenu({
           <select
             value={nilai.categoryId}
             onChange={(e) => onUbah({ ...nilai, categoryId: (e.target as HTMLSelectElement).value })}
-            class="w-full rounded-md border border-ink-300 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+            class="w-full rounded-md border border-ink-300 bg-surface px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>

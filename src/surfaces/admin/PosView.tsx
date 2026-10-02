@@ -240,7 +240,7 @@ export function PosView({
               value={cari}
               onInput={(e) => setCari((e.target as HTMLInputElement).value)}
               placeholder="Cari menu…"
-              class="w-full rounded-lg border border-ink-200 bg-white py-2.5 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
+              class="w-full rounded-lg border border-ink-200 bg-surface py-2.5 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
             />
           </div>
           {cari ? (
@@ -286,7 +286,7 @@ export function PosView({
                       'relative flex flex-col gap-2.5 overflow-hidden rounded-xl border p-3 text-left transition-colors',
                       diKeranjang
                         ? 'border-brand-500 bg-brand-50'
-                        : 'border-ink-200 bg-white hover:border-brand-300 hover:bg-brand-50/50',
+                        : 'border-ink-200 bg-surface hover:border-brand-300 hover:bg-brand-50/50',
                     ].join(' ')}
                   >
                     <MenuThumb
@@ -327,7 +327,7 @@ export function PosView({
       {/* ================================================================ */}
       {/* Keranjang                                                        */}
       {/* ================================================================ */}
-      <aside class="flex w-[380px] shrink-0 flex-col rounded-xl border border-ink-200 bg-white">
+      <aside class="flex w-[380px] shrink-0 flex-col rounded-xl border border-ink-200 bg-surface">
         <header class="flex items-center justify-between border-b border-ink-200 px-4 py-3">
           <div>
             <h2 class="font-bold text-ink-900">Pesanan</h2>
@@ -444,7 +444,7 @@ export function PosView({
                     class={[
                       'rounded-lg px-2 py-2.5 text-xs font-bold transition-colors',
                       metode === m
-                        ? 'bg-ink-900 text-white'
+                        ? 'bg-solid text-on-solid'
                         : 'bg-ink-100 text-ink-700 hover:bg-ink-200',
                     ].join(' ')}
                   >
@@ -548,7 +548,7 @@ function TombolKategori({
       onClick={onClick}
       class={[
         'shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors',
-        aktif ? 'bg-brand-600 text-white' : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
+        aktif ? 'bg-brand-600 text-white' : 'bg-surface text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
       ].join(' ')}
     >
       {children}
@@ -588,7 +588,7 @@ function PanelDiskon({
             onClick={() => onUbah({ type: t, value: 0 })}
             class={[
               'flex-1 rounded-md px-2 py-1.5 text-xs font-bold',
-              nilai.type === t ? 'bg-ink-900 text-white' : 'bg-white text-ink-700 ring-1 ring-ink-200',
+              nilai.type === t ? 'bg-solid text-on-solid' : 'bg-surface text-ink-700 ring-1 ring-ink-200',
             ].join(' ')}
           >
             {t === 'percent' ? 'Persen' : 'Rupiah'}

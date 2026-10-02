@@ -42,7 +42,7 @@ export interface StockViewProps {
 const TONE: Record<string, string> = {
   habis: 'border-cancelled/40 bg-cancelled/5',
   menipis: 'border-pending/40 bg-pending/5',
-  aman: 'border-ink-200 bg-white',
+  aman: 'border-ink-200 bg-surface',
 };
 
 export function StockView({

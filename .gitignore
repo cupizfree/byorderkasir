@@ -29,6 +29,12 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Prototipe desain: sepuluh arah tampilan yang dicoba sebelum tiga tema
+# dipilih. Berguna saat merancang, tapi bukan bagian dari produk — dan
+# hasil tangkapan layarnya 4 MB. Yang dipakai sudah jadi token di
+# src/styles/app.css, dan tangkapan layar finalnya ada di docs/screenshots/.
+prototipe/
+
 # Klaster Postgres lokal untuk uji backend — dibuat oleh supabase/uji, berisi
 # data sekali pakai dan tidak boleh ikut ke repositori.
 supabase/uji/pgdata/

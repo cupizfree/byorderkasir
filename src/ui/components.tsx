@@ -39,14 +39,14 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary:
     'bg-brand-700 text-white hover:bg-brand-800 active:bg-brand-900 ' +
     'shadow-[0_2px_8px_rgb(194_65_12/0.22)] hover:shadow-glow',
-  secondary: 'bg-ink-900 text-white hover:bg-ink-800 active:bg-ink-950 shadow-card',
+  secondary: 'bg-solid text-on-solid hover:opacity-90 active:opacity-80 shadow-card',
   outline:
-    'border border-ink-300 bg-white text-ink-800 hover:border-ink-400 hover:bg-ink-100 active:bg-ink-200',
+    'border border-ink-300 bg-surface text-ink-800 hover:border-ink-400 hover:bg-ink-100 active:bg-ink-200',
   ghost: 'text-ink-700 hover:bg-ink-100 active:bg-ink-200',
-  danger: 'bg-cancelled text-white hover:brightness-90 active:brightness-75 shadow-card',
-  'stage-baru': 'bg-pending text-white hover:brightness-110 active:brightness-95 shadow-card',
-  'stage-masak': 'bg-processing text-white hover:brightness-110 active:brightness-95 shadow-card',
-  'stage-siap': 'bg-done text-white hover:brightness-110 active:brightness-95 shadow-card',
+  danger: 'bg-cancelled text-on-cancelled hover:brightness-90 active:brightness-75 shadow-card',
+  'stage-baru': 'bg-pending text-on-pending hover:brightness-110 active:brightness-95 shadow-card',
+  'stage-masak': 'bg-processing text-on-processing hover:brightness-110 active:brightness-95 shadow-card',
+  'stage-siap': 'bg-done text-on-done hover:brightness-110 active:brightness-95 shadow-card',
 };
 
 const SIZES: Record<ButtonSize, string> = {
@@ -273,7 +273,7 @@ export function Field({
 }
 
 const INPUT_BASE =
-  'w-full rounded-md border border-ink-300 bg-white px-3 py-2.5 text-sm text-ink-900 ' +
+  'w-full rounded-md border border-ink-300 bg-surface px-3 py-2.5 text-sm text-ink-900 ' +
   'placeholder:text-ink-400 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/20 ' +
   'focus:outline-none disabled:bg-ink-100 disabled:text-ink-500';
 
@@ -439,7 +439,7 @@ export function Modal({
         aria-label={title}
         tabIndex={-1}
         class={[
-          'flex w-full flex-col overflow-hidden bg-white shadow-xl outline-none',
+          'flex w-full flex-col overflow-hidden bg-surface shadow-xl outline-none',
           'rounded-t-xl sm:rounded-xl',
           MODAL_SIZES[size],
         ].join(' ')}

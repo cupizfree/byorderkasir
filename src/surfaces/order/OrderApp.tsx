@@ -214,7 +214,7 @@ export function OrderApp({
               'tap shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors',
               c.id === aktif
                 ? 'bg-brand-600 text-white'
-                : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
+                : 'bg-surface text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
             ].join(' ')}
           >
             {c.name}
@@ -290,7 +290,7 @@ export function OrderApp({
 
       {/* Bilah keranjang --------------------------------------------------- */}
       {jumlah > 0 && total ? (
-        <div class="safe-b fixed inset-x-0 bottom-0 border-t border-ink-200 bg-white px-5 py-3">
+        <div class="safe-b fixed inset-x-0 bottom-0 border-t border-ink-200 bg-surface px-5 py-3">
           <button
             type="button"
             onClick={() => setKeranjangTerbuka(true)}
@@ -379,7 +379,7 @@ function LembarKeranjang(p: LembarProps) {
         <div class="flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {/* Baris pesanan ------------------------------------------------- */}
           {p.baris.map((b) => (
-            <div key={b.menu.id} class="rounded-lg border border-ink-200 bg-white p-3">
+            <div key={b.menu.id} class="rounded-lg border border-ink-200 bg-surface p-3">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <p class="font-semibold text-ink-900">{b.menu.name}</p>
@@ -499,7 +499,7 @@ function LembarKeranjang(p: LembarProps) {
           ) : null}
         </div>
 
-        <footer class="border-t border-ink-200 bg-white px-5 py-4">
+        <footer class="border-t border-ink-200 bg-surface px-5 py-4">
           <Button
             variant="primary"
             size="lg"
@@ -536,7 +536,7 @@ function PilihanBayar({
       onClick={onClick}
       class={[
         'tap flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
-        aktif ? 'border-brand-500 bg-brand-50' : 'border-ink-200 bg-white hover:bg-ink-50',
+        aktif ? 'border-brand-500 bg-brand-50' : 'border-ink-200 bg-surface hover:bg-ink-50',
       ].join(' ')}
     >
       <span

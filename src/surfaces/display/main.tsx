@@ -9,6 +9,7 @@ import { render } from 'preact';
 import { useEffect } from 'preact/hooks';
 
 import '../../styles/app.css';
+import '../../state/theme.ts';
 import { ErrorBlock, LoadingBlock } from '../../ui/components.tsx';
 import { loadRepository } from '../../data/load.ts';
 import {

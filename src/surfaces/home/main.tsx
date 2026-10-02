@@ -10,6 +10,7 @@ import { render } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
 import '../../styles/app.css';
+import '../../state/theme.ts';
 import { Button, Card, ConnectionPill } from '../../ui/components.tsx';
 import { Icon, type IconName } from '../../ui/icons.tsx';
 import {
@@ -107,7 +108,7 @@ function App() {
 
   return (
     <div class="min-h-dvh bg-ink-50">
-      <header class="safe-x border-b border-ink-200 bg-white">
+      <header class="safe-x border-b border-ink-200 bg-surface">
         <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 py-5">
           <div class="flex items-center gap-3">
             <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-700 text-white">
@@ -154,7 +155,7 @@ function App() {
           ))}
         </div>
 
-        <div class="mt-8 rounded-lg border border-ink-200 bg-white p-5">
+        <div class="mt-8 rounded-lg border border-ink-200 bg-surface p-5">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h3 class="flex items-center gap-2 text-sm font-bold text-ink-800">
@@ -190,7 +191,7 @@ function App() {
             mencetak QR lebih dulu. Tiap tautan membawa token meja, sama
             seperti yang ada di dalam QR fisik. */}
         {tables.value.length > 0 ? (
-          <div class="mt-4 rounded-lg border border-ink-200 bg-white p-5">
+          <div class="mt-4 rounded-lg border border-ink-200 bg-surface p-5">
             <h3 class="flex items-center gap-2 text-sm font-bold text-ink-800">
               <Icon name="table" size={16} />
               Meja — coba alur pesan sendiri
@@ -214,7 +215,7 @@ function App() {
           </div>
         ) : null}
 
-        <div class="mt-4 rounded-lg border border-ink-200 bg-white p-5">
+        <div class="mt-4 rounded-lg border border-ink-200 bg-surface p-5">
           <h3 class="flex items-center gap-2 text-sm font-bold text-ink-800">
             <Icon name="info" size={16} />
             Catatan

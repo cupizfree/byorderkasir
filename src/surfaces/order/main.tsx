@@ -15,6 +15,7 @@ import { render } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 
 import '../../styles/app.css';
+import '../../state/theme.ts';
 import { ErrorBlock, LoadingBlock } from '../../ui/components.tsx';
 import { getRepository } from '../../data/index.ts';
 import { loadRepository } from '../../data/load.ts';

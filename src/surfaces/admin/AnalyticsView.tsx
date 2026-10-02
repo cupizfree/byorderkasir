@@ -202,7 +202,7 @@ export function AnalyticsView({
               'rounded-full px-3.5 py-1.5 text-sm font-bold transition-colors',
               periode === p
                 ? 'bg-brand-600 text-white'
-                : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
+                : 'bg-surface text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
             ].join(' ')}
           >
             {LABEL_PERIODE[p]}

@@ -130,7 +130,7 @@ export function OrdersView({
               'rounded-full px-3.5 py-1.5 text-sm font-bold transition-colors',
               saringan === s
                 ? 'bg-brand-600 text-white'
-                : 'bg-white text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
+                : 'bg-surface text-ink-700 ring-1 ring-ink-200 hover:bg-ink-100',
             ].join(' ')}
           >
             {LABEL_SARINGAN[s]}
@@ -147,7 +147,7 @@ export function OrdersView({
             value={cari}
             onInput={(e) => setCari((e.target as HTMLInputElement).value)}
             placeholder="Cari kode, nama, meja…"
-            class="w-full rounded-lg border border-ink-200 bg-white py-2 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
+            class="w-full rounded-lg border border-ink-200 bg-surface py-2 pr-3 pl-9 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
       </div>

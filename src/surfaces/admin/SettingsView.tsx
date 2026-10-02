@@ -16,7 +16,9 @@ import { useMemo, useState } from 'preact/hooks';
 
 import { formatRupiah, parseRupiah } from '../../domain/money.ts';
 import { isValidQris, readQris } from '../../domain/qris.ts';
+import { THEME_LIST, type ThemeInfo } from '../../domain/theme.ts';
 import type { PaymentChannel, StoreSettings } from '../../domain/types.ts';
+import { setTheme, theme } from '../../state/theme.ts';
 import { Badge, Button, Card, Field, Input, Textarea } from '../../ui/components.tsx';
 import { Icon } from '../../ui/icons.tsx';
 
@@ -351,6 +353,38 @@ export function SettingsView({ settings, onSimpan, onResetDemo }: SettingsViewPr
       </Card>
 
       {/* ================================================================ */}
+      {/* Tampilan                                                          */}
+      {/* ================================================================ */}
+      <Card>
+        <h2 class="display mb-1 text-xl text-ink-900">Tampilan</h2>
+        <p class="mb-4 text-sm text-ink-600">
+          Tema berlaku untuk <strong>perangkat ini saja</strong>, bukan untuk seluruh toko. Layar
+          dapur, layar antrian, dan meja kasir berdiri di ruang dengan cahaya berbeda — masing-masing
+          bisa memakai tema sendiri. Menyimpan tema tidak perlu koneksi.
+        </p>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          {THEME_LIST.map((t) => (
+            <KartuTema
+              key={t.id}
+              info={t}
+              terpilih={theme.value === t.id}
+              onPilih={() => setTheme(t.id)}
+            />
+          ))}
+        </div>
+
+        <p class="mt-4 flex items-start gap-2 text-xs text-ink-500">
+          <Icon name="info" size={14} class="mt-0.5 shrink-0" />
+          <span>
+            Untuk memasang TV atau tablet tanpa menyentuh perangkatnya, tambahkan{' '}
+            <code class="num rounded bg-ink-100 px-1.5 py-0.5 text-ink-700">?tema=gelap</code> di
+            akhir alamat halaman.
+          </span>
+        </p>
+      </Card>
+
+      {/* ================================================================ */}
       {/* Data demo                                                        */}
       {/* ================================================================ */}
       <Card class="!border-cancelled/30">
@@ -366,7 +400,7 @@ export function SettingsView({ settings, onSimpan, onResetDemo }: SettingsViewPr
       {/* ================================================================ */}
       {/* Bilah simpan                                                     */}
       {/* ================================================================ */}
-      <div class="safe-b fixed inset-x-0 bottom-0 border-t border-ink-200 bg-white/95 px-4 py-3 backdrop-blur">
+      <div class="safe-b fixed inset-x-0 bottom-0 border-t border-ink-200 bg-surface/95 px-4 py-3 backdrop-blur">
         <div class="mx-auto flex max-w-3xl items-center gap-3">
           <div class="min-w-0 flex-1 text-sm">
             {galat ? (
@@ -454,6 +488,79 @@ function StatusQris({ payload }: { payload: string | null }) {
 /* ==========================================================================
    Potongan
    ========================================================================= */
+
+/**
+ * Kartu pilihan tema.
+ *
+ * Pratinjaunya digambar dari `info.contoh`, bukan dengan benar-benar mengganti
+ * tema halaman. Alasannya: mengganti `data-theme` untuk melihat pratinjau akan
+ * membuat SELURUH halaman — termasuk kartu tema yang lain — ikut berubah, jadi
+ * ketiga pilihan tidak bisa dibandingkan berdampingan.
+ */
+function KartuTema({
+  info,
+  terpilih,
+  onPilih,
+}: {
+  info: ThemeInfo;
+  terpilih: boolean;
+  onPilih: () => void;
+}) {
+  const c = info.contoh;
+
+  return (
+    <button
+      type="button"
+      onClick={onPilih}
+      aria-pressed={terpilih}
+      title={info.deskripsi}
+      class={[
+        'flex flex-col gap-2.5 rounded-xl border-2 p-2.5 text-left transition',
+        // Latar terpilih memakai `ink-100`, bukan `brand-50`. `brand-*` sengaja
+        // TIDAK ikut berganti tema (itu warna merek), jadi `brand-50` tetap
+        // krem terang di tema gelap — dan teks deskripsinya, yang ikut menjadi
+        // abu terang, jadi tidak terbaca di atasnya.
+        terpilih
+          ? 'border-brand-700 bg-ink-100 ring-1 ring-brand-700/25'
+          : 'border-ink-200 hover:border-ink-300 hover:bg-ink-50',
+      ].join(' ')}
+    >
+      {/* Tiruan kecil layar dapur, memakai warna tema ini. */}
+      <span
+        class="flex h-24 w-full flex-col gap-1.5 overflow-hidden rounded-lg p-2"
+        style={{ backgroundColor: c.latar }}
+      >
+        <span class="flex items-center gap-1.5">
+          <span class="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.aksen }} />
+          <span class="h-1.5 w-6 rounded-full opacity-50" style={{ backgroundColor: c.teks }} />
+        </span>
+        <span
+          class="flex flex-1 flex-col justify-center gap-1.5 rounded-md p-1.5"
+          style={{ backgroundColor: c.permukaan, border: `1px solid ${c.garis}` }}
+        >
+          <span class="h-1.5 w-10 rounded-full" style={{ backgroundColor: c.aksen }} />
+          <span class="h-1 w-full rounded-full opacity-45" style={{ backgroundColor: c.teks }} />
+          <span class="h-1 w-2/3 rounded-full opacity-25" style={{ backgroundColor: c.teks }} />
+        </span>
+      </span>
+
+      <span class="flex items-start justify-between gap-2 px-0.5">
+        <span class="min-w-0">
+          <span class="block text-sm font-bold text-ink-900">{info.label}</span>
+          <span class="mt-0.5 block text-xs leading-snug text-ink-500">{info.deskripsi}</span>
+        </span>
+        <span
+          class={[
+            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
+            terpilih ? 'bg-brand-700 text-white' : 'border border-ink-300',
+          ].join(' ')}
+        >
+          {terpilih ? <Icon name="check" size={12} /> : null}
+        </span>
+      </span>
+    </button>
+  );
+}
 
 function Baris({ label, nilai }: { label: string; nilai: string }) {
   return (

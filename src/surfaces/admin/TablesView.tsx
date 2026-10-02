@@ -182,7 +182,7 @@ export function TablesView(p: TablesViewProps) {
               <button
                 type="button"
                 onClick={() => setQrUntuk(t)}
-                class="mt-3 flex w-full items-center justify-center rounded-lg border border-ink-200 bg-white p-3 transition hover:border-brand-400 hover:bg-brand-50"
+                class="mt-3 flex w-full items-center justify-center rounded-lg border border-ink-200 bg-surface p-3 transition hover:border-brand-400 hover:bg-brand-50"
                 aria-label={`Lihat QR ${t.name}`}
               >
                 <QrCode value={tautanMeja(t)} size={104} label={`QR ${t.name}`} />
@@ -305,7 +305,7 @@ function ModalQr({
         <h3 class="display mt-1 text-2xl text-ink-900">{meja.name || `Meja ${meja.number}`}</h3>
         <p class="mt-1 text-sm text-ink-600">Scan untuk memesan dari HP</p>
 
-        <div class="mt-4 flex justify-center rounded-xl border border-ink-200 bg-white p-4">
+        <div class="mt-4 flex justify-center rounded-xl border border-ink-200 bg-surface p-4">
           <QrCode value={url} size={220} label={`QR ${meja.name}`} />
         </div>
 
@@ -400,7 +400,7 @@ function FormMeja({
             <select
               value={nilai.status}
               onChange={(e) => onUbah({ ...nilai, status: (e.target as HTMLSelectElement).value as DiningTable['status'] })}
-              class="w-full rounded-md border border-ink-300 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
+              class="w-full rounded-md border border-ink-300 bg-surface px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
             >
               <option value="available">Kosong</option>
               <option value="occupied">Terisi</option>
