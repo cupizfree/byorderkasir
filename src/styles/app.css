@@ -274,15 +274,39 @@
    Dipasang sebagai `background-image` pada body, bukan sebagai elemen
    ber-`position:fixed`. Alasannya: elemen fixed butuh konteks penumpukan
    sendiri, dan itu mudah salah di aplikasi ber-modal — modal bisa tertinggal
-   di belakang pendar. Sebagai latar body, tidak ada lapisan baru sama sekali. */
+   di belakang pendar. Sebagai latar body, tidak ada lapisan baru sama sekali.
+
+   SYARAT: tidak boleh ada elemen leluhur yang menutupi body dengan warna
+   rata. Karena itu akar tiap layar memakai `bg-transparent`, bukan
+   `bg-ink-50` — warna dasarnya sudah datang dari `body` di @layer base.
+   Sebelum ini akar AdminShell berlatar `bg-ink-50` pekat, dan seluruh
+   pendar ini tidak pernah terlihat sama sekali. */
 [data-theme='fokus'] body {
   background-color: var(--color-ink-50);
   background-image:
-    radial-gradient(900px 620px at 14% 4%, rgb(255 107 74 / 0.2), transparent 70%),
-    radial-gradient(820px 560px at 84% 0%, rgb(225 29 116 / 0.16), transparent 70%),
-    radial-gradient(900px 640px at 62% 100%, rgb(139 92 246 / 0.2), transparent 72%),
-    radial-gradient(700px 520px at 2% 92%, rgb(34 211 238 / 0.09), transparent 72%);
+    radial-gradient(900px 620px at 14% 4%, rgb(255 107 74 / 0.3), transparent 70%),
+    radial-gradient(820px 560px at 84% 0%, rgb(225 29 116 / 0.24), transparent 70%),
+    radial-gradient(900px 640px at 62% 100%, rgb(139 92 246 / 0.28), transparent 72%),
+    radial-gradient(700px 520px at 2% 92%, rgb(34 211 238 / 0.13), transparent 72%);
   background-attachment: fixed;
+}
+
+/* Bilah atas ikut tema Fokus.
+   `surface-dark` bawaan adalah gradien biru navy pekat — dipilih untuk header
+   TV antrian. Di tema Fokus, navy bertabrakan dengan pendar plum/oranye, dan
+   blok pekatnya memotong aurora tepat di tepi atas layar. Di sini bilah itu
+   jadi kaca gelap tembus pandang, seperti prototipe.
+
+   CATATAN: `backdrop-filter` sengaja TIDAK ditulis di sini. Minifier
+   (Lightning CSS) menggabungkan `backdrop-filter` + `-webkit-backdrop-filter`
+   menjadi satu, dan menyisakan HANYA versi `-webkit-` — padahal Chrome
+   mendukung versi standarnya dan justru tidak mendukung versi berawalan itu
+   (`CSS.supports('-webkit-backdrop-filter', …)` bernilai false). Akibatnya
+   efek kaca diam-diam tidak pernah aktif. Karena itu efek blur dipasang lewat
+   kelas Tailwind di komponennya, yang keluarannya tidak ikut digabung. */
+[data-theme='fokus'] .surface-dark {
+  background-image: none;
+  background-color: rgb(8 9 12 / 0.55);
 }
 
 /* ============================================================================

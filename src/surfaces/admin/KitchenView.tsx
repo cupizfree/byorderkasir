@@ -101,6 +101,31 @@ function umurMenit(order: Order, sekarang: number): number {
   return Math.max(0, Math.floor((sekarang - Date.parse(order.createdAt)) / 60_000));
 }
 
+/**
+ * Ringkasan satu layar dapur untuk pil statistik di bilah atas.
+ *
+ * Diekspor supaya bilah atas dan isi layar memakai ambang yang sama persis.
+ * Kalau `MENIT_TERLAMBAT` di sini diubah, angka "TELAT" di atas ikut berubah —
+ * tidak mungkin keduanya berbeda cerita.
+ */
+export function statistikDapur(daftar: readonly Order[], sekarang: number) {
+  // `ready` ikut dihitung aktif. Pesanan yang sudah matang tapi belum
+  // diserahkan masih ada di tangan dapur — justru itu yang paling perlu
+  // diawasi. Kalau hanya pending+processing yang dihitung, angka "Telat"
+  // akan selalu 0 di jam sibuk: yang telat biasanya sudah matang dan
+  // menunggu diambil, bukan yang masih dimasak.
+  const aktif = daftar.filter(
+    (o) => o.status === 'pending' || o.status === 'processing' || o.status === 'ready',
+  );
+  const umur = aktif.map((o) => umurMenit(o, sekarang));
+  const jumlah = umur.length;
+  return {
+    aktif: jumlah,
+    telat: umur.filter((m) => m >= MENIT_TERLAMBAT).length,
+    rata: jumlah === 0 ? 0 : Math.round(umur.reduce((s, m) => s + m, 0) / jumlah),
+  };
+}
+
 /* ==========================================================================
    Aksi — satu definisi untuk kedua tata letak
    ========================================================================= */
@@ -389,7 +414,18 @@ function BarisAntrean({ order, sekarang, sibuk, onAdvance }: BarisAntreanProps) 
         <span class="ml-1 text-xs font-semibold text-ink-400">mnt</span>
       </p>
 
-      <Button variant={aksi.variant} size="md" loading={sibuk} onClick={onAdvance} class="shrink-0">
+      {/* Tombol baris dibuat netral, tidak diwarnai status. Warnanya sudah
+          dibawa bilah aksen kiri, angka menit, dan teks tahap; kalau tombolnya
+          ikut berwarna, empat sinyal berebut perhatian dan tidak ada yang
+          menonjol. Hanya "mulai masak" yang diberi isian penuh — itu yang
+          dicari mata juru masak begitu ada pesanan baru. */}
+      <Button
+        variant={order.status === 'pending' ? 'secondary' : 'outline'}
+        size="md"
+        loading={sibuk}
+        onClick={onAdvance}
+        class="shrink-0"
+      >
         {aksi.label}
       </Button>
     </article>
@@ -422,21 +458,24 @@ function DapurFokus({ daftar, sekarang, sibuk, onAdvance, onPrint }: FokusProps)
   const aksiUtama = aksiUntuk(utama);
   const menitUtama = umurMenit(utama, sekarang);
 
-  // Cincin luar kartu utama: makin telat, makin panas warnanya. Ini yang
-  // membuat kartu itu tetap menonjol bahkan saat layar dilihat dari jauh.
+  // Bingkai kartu utama: gradien hangat oranye→magenta→violet, senada pendar
+  // aurora di latarnya. Makin telat, ujung hangatnya makin merah — sinyal
+  // keterlambatan tetap terbaca, tapi bingkainya bukan lagi blok warna rata.
   const cincin =
     tingkatUtama === 'terlambat'
-      ? 'from-cancelled/70 via-cancelled/30'
+      ? 'from-cancelled/85 via-[#be185d]/45 to-[#8b5cf6]/30'
       : tingkatUtama === 'peringatan'
-        ? 'from-pending/70 via-pending/30'
-        : 'from-brand-600/60 via-brand-600/25';
+        ? 'from-pending/80 via-[#be185d]/40 to-[#8b5cf6]/28'
+        : 'from-[#c2410c]/80 via-[#be185d]/45 to-[#8b5cf6]/30';
 
-  const warnaAngka =
+  // Angka umur memakai huruf bergradien, bukan satu warna rata. Ujung
+  // hangatnya bergeser mengikuti keterlambatan supaya sinyalnya tidak hilang.
+  const angkaGradien =
     tingkatUtama === 'terlambat'
-      ? 'text-cancelled'
+      ? 'from-white via-[#ffc9c0] to-[#ff6b4a]'
       : tingkatUtama === 'peringatan'
-        ? 'text-pending'
-        : 'text-ink-900';
+        ? 'from-white via-[#ffe6b0] to-[#ffb020]'
+        : 'from-white via-[#ffd2c2] to-[#ff8a6b]';
 
   return (
     <div class="flex h-[calc(100dvh-56px)] gap-4 p-4">
@@ -447,14 +486,23 @@ function DapurFokus({ daftar, sekarang, sibuk, onAdvance, onPrint }: FokusProps)
           Sekarang — paling mendesak
         </p>
 
-        <div class={['flex min-h-0 flex-1 rounded-2xl bg-gradient-to-br to-transparent p-[2px]', cincin].join(' ')}>
+        <div
+          class={[
+            'flex min-h-0 flex-1 rounded-2xl bg-gradient-to-br p-[2px]',
+            'shadow-[0_20px_60px_-20px_rgb(190_24_93/0.55)]',
+            cincin,
+          ].join(' ')}
+        >
           <article class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto rounded-[14px] bg-surface p-5">
             <header class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <p class="num text-lg leading-none font-black text-ink-900">
                   {utama.queueNumber ?? '—'}
                 </p>
-                <p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2.5 py-1 text-xs font-bold text-ink-700">
+                {/* `bg-chip`, bukan `bg-ink-100`: di tema Fokus keduanya
+                    bernilai sama dengan `--color-surface`, jadi lencana ini
+                    tidak punya latar sama sekali dan menghilang. */}
+                <p class="mt-2 inline-flex items-center gap-1.5 rounded-full bg-chip px-2.5 py-1 text-xs font-bold text-on-chip">
                   <Icon name="table" size={12} />
                   {utama.tableNumber === null ? 'Kasir' : `Meja ${utama.tableNumber}`}
                 </p>
@@ -466,8 +514,15 @@ function DapurFokus({ daftar, sekarang, sibuk, onAdvance, onPrint }: FokusProps)
             </header>
 
             {/* Angka umur — elemen terkuat di seluruh layar. */}
-            <p class={['num flex items-baseline gap-2 leading-none font-black', warnaAngka].join(' ')}>
-              <span class="text-[5.5rem] tracking-tighter">{menitUtama}</span>
+            <p class="num flex items-baseline gap-2 leading-none font-black">
+              <span
+                class={[
+                  'bg-gradient-to-br bg-clip-text text-[5.5rem] tracking-tighter text-transparent',
+                  angkaGradien,
+                ].join(' ')}
+              >
+                {menitUtama}
+              </span>
               <span class="text-lg font-semibold text-ink-400">menit</span>
             </p>
 
@@ -496,7 +551,7 @@ function DapurFokus({ daftar, sekarang, sibuk, onAdvance, onPrint }: FokusProps)
 
             <footer class="flex items-stretch gap-2">
               <Button
-                variant={aksiUtama.variant}
+                variant="aurora"
                 size="lg"
                 icon={aksiUtama.icon}
                 loading={sibuk === utama.id}

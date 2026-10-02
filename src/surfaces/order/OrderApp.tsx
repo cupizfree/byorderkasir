@@ -188,7 +188,7 @@ export function OrderApp({
   /* --- Menu ------------------------------------------------------------- */
 
   return (
-    <div class="flex min-h-dvh flex-col bg-ink-50 pb-24">
+    <div class="flex min-h-dvh flex-col pb-24">
       <header class="sticky top-0 z-10 bg-ink-950 px-5 py-4 text-white">
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">

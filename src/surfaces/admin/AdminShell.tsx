@@ -38,7 +38,7 @@ import {
 import { ROLE_LABEL, type AdminView } from '../../domain/permissions.ts';
 import { StockView } from './StockView.tsx';
 import { AnalyticsView } from './AnalyticsView.tsx';
-import { KitchenView } from './KitchenView.tsx';
+import { KitchenView, statistikDapur } from './KitchenView.tsx';
 import { LoginView } from './LoginView.tsx';
 import { MenuView } from './MenuView.tsx';
 import { OrdersView } from './OrdersView.tsx';
@@ -51,6 +51,8 @@ import {
   type Periode,
 } from './useAdminActions.ts';
 import { orderStats, orders, displayOrder, categories, menus, tables, loading } from '../../state/store.ts';
+import { tataLetakTema } from '../../domain/theme.ts';
+import { theme } from '../../state/theme.ts';
 
 /* ==========================================================================
    Navigasi
@@ -74,6 +76,34 @@ function tabDariUrl(): Tab {
   return TABS.some((x) => x.id === t) ? (t as Tab) : 'kasir';
 }
 
+/** Pil angka ringkas di bilah atas — dipakai layar dapur. */
+function PilStat({
+  label,
+  nilai,
+  satuan,
+  panas,
+}: {
+  label: string;
+  nilai: string;
+  satuan?: string;
+  panas?: boolean;
+}) {
+  return (
+    <span class="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]">
+      <span class="text-[10px] font-semibold tracking-widest text-white/50 uppercase">{label}</span>
+      <span
+        class={[
+          'num text-sm leading-none font-black',
+          panas ? 'text-cancelled' : 'text-white',
+        ].join(' ')}
+      >
+        {nilai}
+        {satuan ? <span class="ml-0.5 text-[11px] font-semibold text-white/50">{satuan}</span> : null}
+      </span>
+    </span>
+  );
+}
+
 /* ==========================================================================
    Shell
    ========================================================================= */
@@ -84,6 +114,23 @@ export function AdminShell() {
   const [periode, setPeriode] = useState<Periode>('hari');
 
   const aksi = useAdminActions();
+
+  // Jam untuk pil statistik dapur. Berdetak hanya saat tab dapur terbuka —
+  // di tab lain tidak ada yang perlu dihitung ulang tiap 10 detik.
+  const [sekarang, setSekarang] = useState(() => Date.now());
+  const dapurAktif = tab === 'dapur' && tataLetakTema(theme.value) === 'fokus';
+  useEffect(() => {
+    if (!dapurAktif) return;
+    setSekarang(Date.now());
+    const id = setInterval(() => setSekarang(Date.now()), 10_000);
+    return () => clearInterval(id);
+  }, [dapurAktif]);
+
+  // Pil statistik hanya untuk tata letak Fokus — itu bagian dari rancangan
+  // layar itu. Papan tiga kolom sudah punya hitungannya sendiri di tiap judul
+  // kolom, dan menambah tiga pil di atasnya membuat bilah atas penuh tanpa
+  // menambah informasi yang belum ada.
+  const dapur = dapurAktif ? statistikDapur(orders.value, sekarang) : null;
 
   /* --- Muat awal -------------------------------------------------------- */
 
@@ -157,7 +204,7 @@ export function AdminShell() {
 
   if (!siap) {
     return (
-      <div class="flex min-h-dvh items-center justify-center bg-ink-50">
+      <div class="flex min-h-dvh items-center justify-center">
         <LoadingBlock label="Menyiapkan…" />
       </div>
     );
@@ -170,9 +217,17 @@ export function AdminShell() {
   const s = settings.value;
 
   return (
-    <div class="min-h-dvh bg-ink-50">
+    // Sengaja TANPA `bg-ink-50`. Warna dasar sudah datang dari `body`, dan
+    // lapisan pekat di sini menutupi pendar aurora tema Fokus sepenuhnya —
+    // seluruh pendar di app.css tidak pernah terlihat sampai lapisan ini
+    // dibuang.
+    <div class="min-h-dvh">
       {/* ================================================================ */}
-      <header class="surface-dark sticky top-0 z-30 text-white shadow-lift">
+      {/* Efek kaca hanya di tema Fokus, dan dipasang sebagai kelas Tailwind —
+          bukan di app.css — karena minifier menggabungkan `backdrop-filter`
+          dengan varian `-webkit-`-nya dan menyisakan yang berawalan saja, yang
+          tidak didukung Chrome. Lihat catatan di app.css. */}
+      <header class="surface-dark sticky top-0 z-30 text-white shadow-lift [[data-theme=fokus]_&]:backdrop-blur-xl [[data-theme=fokus]_&]:backdrop-saturate-150">
         <div class="flex items-center gap-4 px-4 py-2.5">
           {/* Identitas toko --------------------------------------------- */}
           <div class="flex min-w-0 items-center gap-2.5">
@@ -225,6 +280,15 @@ export function AdminShell() {
 
           {/* Kanan -------------------------------------------------------- */}
           <div class="flex shrink-0 items-center gap-2">
+            {/* Pil statistik dapur. Hanya muncul di tab itu — angkanya khusus
+                dapur, dan di tab kasir atau menu justru menyesatkan. */}
+            {dapur ? (
+              <div class="hidden items-center gap-1.5 lg:flex">
+                <PilStat label="Aktif" nilai={String(dapur.aktif)} />
+                <PilStat label="Telat" nilai={String(dapur.telat)} panas={dapur.telat > 0} />
+                <PilStat label="Rata²" nilai={String(dapur.rata)} satuan="mnt" />
+              </div>
+            ) : null}
             <IndikatorTulis />
             <ConnectionPill status={realtimeStatus.value} dark />
             <span class="hidden text-right lg:block">

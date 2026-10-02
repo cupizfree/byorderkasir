@@ -107,7 +107,7 @@ function App() {
   }
 
   return (
-    <div class="min-h-dvh bg-ink-50">
+    <div class="min-h-dvh">
       <header class="safe-x border-b border-ink-200 bg-surface">
         <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 py-5">
           <div class="flex items-center gap-3">

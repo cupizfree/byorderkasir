@@ -30,7 +30,12 @@ export type ButtonVariant =
      semuanya lolos AA (pending 6.84:1, processing 6.16:1, done 5.21:1). */
   | 'stage-baru'
   | 'stage-masak'
-  | 'stage-siap';
+  | 'stage-siap'
+  /* Tombol utama tema Fokus. Gradien hangat oranye→magenta, senada pendar
+     aurora di latarnya. Dua ujungnya sengaja dipilih yang lebih gelap:
+     putih di atas #FF8A5B — gradien prototipe aslinya — hanya 2,32:1 dan
+     gagal telak, sedangkan #C2410C sudah 5,18:1. */
+  | 'aurora';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -47,6 +52,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
   'stage-baru': 'bg-pending text-on-pending hover:brightness-110 active:brightness-95 shadow-card',
   'stage-masak': 'bg-processing text-on-processing hover:brightness-110 active:brightness-95 shadow-card',
   'stage-siap': 'bg-done text-on-done hover:brightness-110 active:brightness-95 shadow-card',
+  aurora:
+    'bg-gradient-to-br from-[#c2410c] to-[#be185d] text-white ' +
+    'shadow-[0_10px_30px_-10px_rgb(190_24_93/0.6)] hover:brightness-110 active:brightness-95',
 };
 
 const SIZES: Record<ButtonSize, string> = {
