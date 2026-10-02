@@ -668,7 +668,7 @@ function FormKategori({
                 class={[
                   'flex h-11 w-11 items-center justify-center rounded-lg border transition',
                   nilai.icon === ic
-                    ? 'border-brand-500 bg-brand-50 text-brand-700'
+                    ? 'border-brand-500 bg-brand-soft text-brand-soft-fg'
                     : 'border-ink-200 text-ink-500 hover:bg-ink-100',
                 ].join(' ')}
               >

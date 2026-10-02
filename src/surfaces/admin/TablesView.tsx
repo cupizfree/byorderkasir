@@ -182,7 +182,7 @@ export function TablesView(p: TablesViewProps) {
               <button
                 type="button"
                 onClick={() => setQrUntuk(t)}
-                class="mt-3 flex w-full items-center justify-center rounded-lg border border-ink-200 bg-surface p-3 transition hover:border-brand-400 hover:bg-brand-50"
+                class="mt-3 flex w-full items-center justify-center rounded-lg border border-ink-200 bg-surface p-3 transition hover:border-brand-400 hover:bg-brand-soft"
                 aria-label={`Lihat QR ${t.name}`}
               >
                 <QrCode value={tautanMeja(t)} size={104} label={`QR ${t.name}`} />

@@ -107,7 +107,7 @@ function ikonUntuk(nama: string): IconName {
    Komponen
    ========================================================================= */
 
-export type ThumbSize = 'sm' | 'md' | 'lg' | 'tile';
+export type ThumbSize = 'sm' | 'md' | 'lg' | 'tile' | 'tile-lg';
 
 const UKURAN: Record<ThumbSize, { kotak: string; ikon: number }> = {
   sm: { kotak: 'h-11 w-11', ikon: 22 },
@@ -117,6 +117,10 @@ const UKURAN: Record<ThumbSize, { kotak: string; ikon: number }> = {
   // kasir. Kalau tingginya ikut rasio gambar, kartunya jadi terlalu tinggi dan
   // harga antar-kartu tidak lagi sebaris.
   tile: { kotak: 'h-20 w-full', ikon: 30 },
+  // Varian untuk tema Fokus. Kasir memilih sambil melayani antrean, jadi foto
+  // yang cukup besar untuk dikenali sekilas jauh lebih berguna daripada kartu
+  // kecil yang rapat.
+  'tile-lg': { kotak: 'h-32 w-full', ikon: 44 },
 };
 
 export interface MenuThumbProps {

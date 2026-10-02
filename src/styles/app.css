@@ -38,6 +38,16 @@
   --color-brand-600: #ea580c; /* aksen, ikon, border — bukan latar teks putih */
   --color-brand-700: #c2410c; /* CTA: putih di atasnya = 5.18:1  → AA lolos */
   --color-brand-800: #9a3412; /* putih di atasnya = 7.31:1 */
+
+  /* --- Lembut (latar pilihan) ---------------------------------------------
+     Untuk kartu/kategori yang sedang dipilih. `brand-50` dan `brand-100`
+     sengaja TIDAK ikut berganti tema (keduanya bagian dari identitas merek),
+     jadi keduanya tetap krem terang di tema gelap — dan teks di atasnya, yang
+     ikut berubah jadi terang, jadi tidak terbaca. Token ini yang berganti:
+     krem di tema terang, tint oranye tembus di tema gelap. Teksnya memakai
+     `--color-brand-soft-fg` supaya keduanya selalu berpasangan. */
+  --color-brand-soft: #fff7ed;
+  --color-brand-soft-fg: #9a3412;
   --color-brand-900: #7c2d12;
   --color-brand-950: #431407;
 
@@ -193,6 +203,8 @@
   --color-on-solid: #0a0b0d;
   --color-chip: rgb(255 255 255 / 0.13);
   --color-on-chip: #f2f3f5;
+  --color-brand-soft: rgb(194 65 12 / 0.22);
+  --color-brand-soft-fg: #ffb08a;
 
   /* Tint status dibalik: dulu latar tipis terang + teks pekat, sekarang latar
      tipis gelap + teks menyala. Rasio kontrasnya dijaga tetap di atas 4.5:1. */
@@ -243,6 +255,8 @@
   --color-on-solid: #08090c;
   --color-chip: rgb(255 255 255 / 0.13);
   --color-on-chip: #f4f5f7;
+  --color-brand-soft: rgb(194 65 12 / 0.24);
+  --color-brand-soft-fg: #ffb08a;
 
   --color-pending: #ffb020;
   --color-pending-bg: #2a1c05;

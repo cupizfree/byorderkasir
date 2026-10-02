@@ -51,8 +51,6 @@ import {
   type Periode,
 } from './useAdminActions.ts';
 import { orderStats, orders, displayOrder, categories, menus, tables, loading } from '../../state/store.ts';
-import { tataLetakTema } from '../../domain/theme.ts';
-import { theme } from '../../state/theme.ts';
 
 /* ==========================================================================
    Navigasi
@@ -118,7 +116,7 @@ export function AdminShell() {
   // Jam untuk pil statistik dapur. Berdetak hanya saat tab dapur terbuka —
   // di tab lain tidak ada yang perlu dihitung ulang tiap 10 detik.
   const [sekarang, setSekarang] = useState(() => Date.now());
-  const dapurAktif = tab === 'dapur' && tataLetakTema(theme.value) === 'fokus';
+  const dapurAktif = tab === 'dapur';
   useEffect(() => {
     if (!dapurAktif) return;
     setSekarang(Date.now());
@@ -126,10 +124,10 @@ export function AdminShell() {
     return () => clearInterval(id);
   }, [dapurAktif]);
 
-  // Pil statistik hanya untuk tata letak Fokus — itu bagian dari rancangan
-  // layar itu. Papan tiga kolom sudah punya hitungannya sendiri di tiap judul
-  // kolom, dan menambah tiga pil di atasnya membuat bilah atas penuh tanpa
-  // menambah informasi yang belum ada.
+  // Pil statistik dapur. Dulu hanya untuk tata letak Fokus, tapi angka
+  // "berapa yang telat" berguna di tata letak mana pun — papan tiga kolom
+  // menyebar pesanannya ke tiga tempat, jadi tidak ada satu pun tempat yang
+  // menunjukkan berapa total yang terlambat.
   const dapur = dapurAktif ? statistikDapur(orders.value, sekarang) : null;
 
   /* --- Muat awal -------------------------------------------------------- */

@@ -24,8 +24,10 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 
 import { compareQueueLabels } from '../../domain/queue.ts';
+import { tataLetakTema } from '../../domain/theme.ts';
 import { formatTime, nowIso } from '../../domain/time.ts';
 import type { QueueBoardOrder } from '../../domain/types.ts';
+import { theme } from '../../state/theme.ts';
 import { Icon } from '../../ui/icons.tsx';
 import { announceQueue, isAudioUnlocked, isSpeechSupported, playChime, unlockAudio } from './announcer.ts';
 
@@ -107,6 +109,171 @@ function Kolom({
 /* ==========================================================================
    Papan
    ========================================================================= */
+
+/* ==========================================================================
+   Tata letak FOKUS — TV antrian
+   ========================================================================= */
+
+/**
+ * Satu nomor menguasai layar; sisanya jadi daftar ringkas di sisi kanan.
+ *
+ * Papan tiga kolom bagus untuk meja yang bisa dibaca sambil duduk dekat. Tapi
+ * TV ruang tunggu dibaca dari seberang ruangan, sering sambil berdiri, dan
+ * yang dicari pelanggan cuma satu hal: nomornya sudah dipanggil atau belum.
+ * Di tata letak ini nomor itu dibuat sebesar layar mengizinkan, dan kolom
+ * "sedang dimasak" tidak lagi berisi kartu penuh — hanya nomornya, karena
+ * pelanggan tidak perlu tahu meja berapa yang sedang dimasak.
+ */
+function AntrianFokus({
+  storeName,
+  tagline,
+  sorot,
+  siapLain,
+  dimasak,
+  siap,
+  masuk,
+  status,
+  now,
+  dipanggilUlang,
+}: {
+  storeName: string;
+  tagline?: string;
+  sorot: QueueBoardOrder | null;
+  siapLain: readonly QueueBoardOrder[];
+  dimasak: readonly QueueBoardOrder[];
+  siap: readonly QueueBoardOrder[];
+  masuk: readonly QueueBoardOrder[];
+  status: 'connecting' | 'live' | 'polling' | 'offline';
+  now: Date;
+  dipanggilUlang: boolean;
+}) {
+  const tanggal = new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(now);
+
+  return (
+    <div class="flex h-dvh flex-col overflow-hidden text-white">
+      <header class="flex shrink-0 items-center justify-between gap-6 border-b border-white/10 px-7 py-3.5">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#c2410c] to-[#be185d] shadow-[0_10px_28px_-10px_rgb(190_24_93/0.7)]">
+            <Icon name="bell" size={24} />
+          </div>
+          <div class="min-w-0">
+            <h1 class="display truncate text-2xl leading-tight font-bold">{storeName}</h1>
+            <p class="truncate text-sm font-semibold text-white/70">{tagline || 'Layar Antrian'}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+          <span class="flex items-center gap-2 text-sm font-bold text-white/70">
+            <span
+              class={[
+                'h-2.5 w-2.5 rounded-full',
+                status === 'live' ? 'bg-emerald-400' : status === 'offline' ? 'bg-red-400' : 'bg-amber-400',
+              ].join(' ')}
+            />
+            {status === 'live' ? 'Tersambung' : status === 'offline' ? 'Terputus' : 'Menyambung'}
+          </span>
+          <div class="text-right">
+            <time class="num block text-3xl leading-none font-black tabular-nums" dateTime={nowIso()}>
+              {formatTime(now)}
+            </time>
+            <span class="text-xs font-semibold text-white/80">{tanggal}</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="grid min-h-0 flex-1 grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)] gap-4 p-4">
+        {/* --- Nomor yang dipanggil: seluruh perhatian ke sini --- */}
+        <section class="flex min-h-0 flex-col items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04] px-8 py-6 text-center">
+          {sorot ? (
+            <>
+              <p class="text-sm font-bold tracking-[0.28em] text-emerald-300 uppercase">
+                {dipanggilUlang ? `Panggilan ke-${sorot.callCount}` : 'Nomor dipanggil'}
+              </p>
+              <p
+                key={`${sorot.id}@${sorot.calledAt ?? 'x'}`}
+                class="anim-pop num mt-1 bg-gradient-to-br from-white via-emerald-100 to-emerald-300 bg-clip-text text-[clamp(6rem,17vw,15rem)] leading-[0.85] font-black tracking-tighter text-transparent"
+              >
+                {sorot.queueNumber ?? '—'}
+              </p>
+              <p class="mt-3 text-3xl font-bold">
+                {sorot.tableNumber === null ? 'Ambil di kasir' : `Meja ${sorot.tableNumber}`}
+              </p>
+            </>
+          ) : (
+            <div class="flex flex-col items-center gap-3 text-white/70">
+              <Icon name="bell" size={56} strokeWidth={1.2} />
+              <p class="text-2xl font-bold">Belum ada yang dipanggil</p>
+              <p class="text-base">Nomor yang siap akan muncul besar di sini</p>
+            </div>
+          )}
+        </section>
+
+        {/* --- Sisanya: ringkas, hanya nomornya --- */}
+        <section class="flex min-h-0 flex-col gap-3">
+          <div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <p class="flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-emerald-200 uppercase">
+              <Icon name="bell" size={14} />
+              Siap diambil
+              <span class="num ml-auto rounded-md bg-white/10 px-2 py-0.5 text-white">{siap.length}</span>
+            </p>
+            {siap.length === 0 ? (
+              <p class="flex flex-1 items-center justify-center text-sm font-semibold text-white/55">
+                Belum ada
+              </p>
+            ) : (
+              <div class="mt-3 grid grid-cols-3 gap-2">
+                {(sorot ? siapLain : siap).map((o) => (
+                  <span
+                    key={o.id}
+                    class="num rounded-lg border border-emerald-300/40 bg-emerald-400/15 py-2.5 text-center text-2xl font-black"
+                  >
+                    {o.queueNumber ?? '—'}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <p class="flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-sky-200 uppercase">
+              <Icon name="flame" size={14} />
+              Sedang dimasak
+              <span class="num ml-auto rounded-md bg-white/10 px-2 py-0.5 text-white">{dimasak.length}</span>
+            </p>
+            {dimasak.length === 0 ? (
+              <p class="flex flex-1 items-center justify-center text-sm font-semibold text-white/55">
+                Dapur kosong
+              </p>
+            ) : (
+              <div class="mt-3 grid grid-cols-4 gap-2">
+                {dimasak.map((o) => (
+                  <span
+                    key={o.id}
+                    class="num rounded-lg border border-sky-300/35 bg-sky-400/15 py-2 text-center text-xl font-bold"
+                  >
+                    {o.queueNumber ?? '—'}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {masuk.length > 0 ? (
+            <div class="shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <p class="text-xs font-bold tracking-[0.16em] text-amber-200 uppercase">
+                Menunggu dimasak · {masuk.length}
+              </p>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    </div>
+  );
+}
 
 export interface QueueBoardProps {
   orders: readonly QueueBoardOrder[];
@@ -223,6 +390,24 @@ export function QueueBoard({
   }).format(now);
 
   const dipanggilUlang = (sorot?.callCount ?? 0) > 1;
+
+  // Tata letak mengikuti tema, sama seperti layar dapur.
+  if (tataLetakTema(theme.value) === 'fokus') {
+    return (
+      <AntrianFokus
+        storeName={storeName}
+        tagline={tagline}
+        sorot={sorot}
+        siapLain={siapLain}
+        dimasak={dimasak}
+        siap={siap}
+        masuk={masuk}
+        status={status}
+        now={now}
+        dipanggilUlang={dipanggilUlang}
+      />
+    );
+  }
 
   return (
     <div class="surface-dark flex h-dvh flex-col overflow-hidden text-white">

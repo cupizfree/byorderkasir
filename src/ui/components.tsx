@@ -186,7 +186,7 @@ const TONES: Record<StatusTone | 'neutral' | 'brand', string> = {
   done: 'bg-done-bg text-done',
   cancelled: 'bg-cancelled-bg text-cancelled',
   neutral: 'bg-ink-100 text-ink-700',
-  brand: 'bg-brand-100 text-brand-800',
+  brand: 'bg-brand-soft text-brand-soft-fg',
 };
 
 export function Badge({

@@ -536,7 +536,7 @@ function PilihanBayar({
       onClick={onClick}
       class={[
         'tap flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
-        aktif ? 'border-brand-500 bg-brand-50' : 'border-ink-200 bg-surface hover:bg-ink-50',
+        aktif ? 'border-brand-500 bg-brand-soft' : 'border-ink-200 bg-surface hover:bg-ink-50',
       ].join(' ')}
     >
       <span

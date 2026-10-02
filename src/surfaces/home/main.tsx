@@ -134,7 +134,7 @@ function App() {
             <a key={surface.href} href={surface.href} class="group block focus:outline-none">
               <Card class="h-full p-5 transition group-hover:border-brand-700 group-hover:shadow-md">
                 <div class="flex items-start gap-4">
-                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-800">
+                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-soft-fg">
                     <Icon name={surface.icon} size={22} />
                   </div>
                   <div class="min-w-0">
@@ -205,7 +205,7 @@ function App() {
                 <a
                   key={t.id}
                   href={`/order/?t=${encodeURIComponent(t.qrToken)}`}
-                  class="inline-flex items-center gap-2 rounded-lg border border-ink-200 px-3.5 py-2 text-sm font-bold text-ink-800 transition-colors hover:border-brand-500 hover:bg-brand-50"
+                  class="inline-flex items-center gap-2 rounded-lg border border-ink-200 px-3.5 py-2 text-sm font-bold text-ink-800 transition-colors hover:border-brand-500 hover:bg-brand-soft"
                 >
                   <Icon name="qr" size={15} />
                   {t.name || `Meja ${t.number}`}

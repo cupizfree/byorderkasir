@@ -131,7 +131,15 @@ export const seedMenus: Menu[] = rawMenus.map((m, i) => ({
   price: m.price,
   costPrice: m.costPrice,
   description: m.description,
-  imageUrl: null,
+  // Foto contoh untuk mode demo, diambil dari Wikimedia Commons (lisensi
+  // bebas, keterangan lengkap di public/menu/KREDIT.json). Nama berkasnya
+  // sama dengan id menu, jadi tidak ada tabel pemetaan yang bisa basi.
+  //
+  // Toko sungguhan mengunggah fotonya sendiri lewat Pengaturan → Menu. Kalau
+  // `imageUrl` kosong atau berkasnya hilang, MenuThumb otomatis kembali ke
+  // gambar bawaan (gradien + ikon) — daftar menu tidak pernah menampilkan
+  // kotak rusak.
+  imageUrl: `/menu/${m.id}.webp`,
   isAvailable: m.isAvailable ?? true,
   stock: m.stock,
   sortOrder: i + 1,

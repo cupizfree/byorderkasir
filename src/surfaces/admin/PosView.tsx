@@ -25,7 +25,9 @@ import {
   totalQty,
 } from '../../domain/money.ts';
 import { QrisError, qrisWithAmount } from '../../domain/qris.ts';
+import { tataLetakTema } from '../../domain/theme.ts';
 import type { Category, Discount, Menu, Order, OrderItem, PaymentMethod, StoreSettings } from '../../domain/types.ts';
+import { theme } from '../../state/theme.ts';
 import { Button, Card, Field, Input, Money } from '../../ui/components.tsx';
 import { Icon } from '../../ui/icons.tsx';
 import { MenuThumb } from '../../ui/MenuThumb.tsx';
@@ -274,9 +276,20 @@ export function PosView({
           {daftar.length === 0 ? (
             <p class="py-16 text-center text-sm text-ink-500">Tidak ada menu yang cocok.</p>
           ) : (
-            <div class="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">
+            // Tema Fokus: foto lebih besar dan kisi lebih longgar. Kasir memilih
+            // sambil melayani antrean — mengenali gambar sekilas lebih cepat
+            // daripada membaca nama, jadi gambar yang layak dilihat lebih
+            // berguna daripada kartu kecil yang rapat.
+            <div
+              class={
+                tataLetakTema(theme.value) === 'fokus'
+                  ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'
+                  : 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'
+              }
+            >
               {daftar.map((m) => {
                 const diKeranjang = keranjang.find((b) => b.menu.id === m.id);
+                const besar = tataLetakTema(theme.value) === 'fokus';
                 return (
                   <button
                     key={m.id}
@@ -285,15 +298,15 @@ export function PosView({
                     class={[
                       'relative flex flex-col gap-2.5 overflow-hidden rounded-xl border p-3 text-left transition-colors',
                       diKeranjang
-                        ? 'border-brand-500 bg-brand-50'
-                        : 'border-ink-200 bg-surface hover:border-brand-300 hover:bg-brand-50/50',
+                        ? 'border-brand-500 bg-brand-soft'
+                        : 'border-ink-200 bg-surface hover:border-brand-300 hover:bg-brand-soft/50',
                     ].join(' ')}
                   >
                     <MenuThumb
                       name={m.name}
                       imageUrl={m.imageUrl}
                       category={categories.find((c) => c.id === m.categoryId)?.name}
-                      size="tile"
+                      size={besar ? 'tile-lg' : 'tile'}
                       rounded="rounded-lg"
                     />
 
@@ -638,7 +651,7 @@ function HasilOrder({
           <div
             class={[
               'mx-auto flex h-14 w-14 items-center justify-center rounded-full',
-              lunas ? 'bg-done-bg text-done' : 'bg-brand-100 text-brand-700',
+              lunas ? 'bg-done-bg text-done' : 'bg-brand-soft text-brand-soft-fg',
             ].join(' ')}
           >
             <Icon name={lunas ? 'check' : 'receipt'} size={26} />
