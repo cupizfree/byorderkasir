@@ -187,7 +187,15 @@ export function PosView({
       let qris: string | null = null;
 
       if (metode === 'cash') {
-        await onPay(order.id, total.total, tunai);
+        // Pembayaran tunai sudah lunas sejak order dibuat — uangnya diterima
+        // di tangan, jadi `createOrder` menandainya `paid` (sama seperti
+        // create_order di schema.sql). Memanggil `onPay` lagi di sini membuat
+        // `tandaiLunas` melempar "Order ini sudah lunas", dan karena galat itu
+        // terjadi sebelum keranjang dibersihkan, transaksi tunai tidak pernah
+        // selesai.
+        if (order.payment.status !== 'paid') {
+          await onPay(order.id, order.payment.amountDue, tunai);
+        }
       } else if (metode === 'qris_static') {
         const payload = settings.payments.qrisStatic.payload;
         if (payload) {
@@ -393,16 +401,23 @@ export function PosView({
           // Ponsel: panel bawah yang digeser naik. Dipatok `w-[380px]` seperti
           // sebelumnya, panel ini menelan seluruh lebar layar sempit dan kisi
           // menu yang menyusut jadi nol.
-          // Tingginya 92dvh, bukan 85dvh: blok pembayaran saja butuh ~440 px,
-          // jadi dengan 85dvh daftar item cuma kebagian ~205 px dan langsung
-          // terpotong. Kasir lebih perlu melihat apa yang ditagih.
-          'fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-2xl border-t shadow-2xl transition-transform duration-200',
+          //
+          // `overflow-y-auto` di sini wajib. Isi panel (kepala + daftar + blok
+          // bayar) bisa lebih tinggi daripada layar, dan kelebihannya tumpah ke
+          // bawah layar tanpa cara menggulirnya — tombol bayar jadi tidak
+          // terjangkau sama sekali. Paling kentara di ponsel mendatar, yang
+          // tingginya cuma ~390 px sementara blok bayar saja ~560 px.
+          'fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl border-t shadow-2xl transition-transform duration-200',
+          // Layar pendek (ponsel mendatar): pakai seluruh tinggi yang ada.
+          '[@media(max-height:600px)]:max-h-[100dvh]',
           keranjangTerbuka ? 'translate-y-0' : 'translate-y-full',
           // Layar lebar: kolom tetap di sisi kanan, selalu terlihat.
           'lg:static lg:z-auto lg:max-h-none lg:w-[380px] lg:shrink-0 lg:translate-y-0 lg:rounded-xl lg:border lg:shadow-none',
         ].join(' ')}
       >
-        <header class="flex items-center justify-between border-b border-ink-200 px-4 py-3">
+        {/* Kepala lengket: panelnya sendiri yang menggulir di layar sempit,
+            jadi tombol tutup harus selalu terjangkau. */}
+        <header class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-ink-200 bg-surface px-4 py-3">
           <div>
             <h2 class="font-bold text-ink-900">Pesanan</h2>
             <p class="text-xs text-ink-500">Kasir: {cashierName || '—'}</p>
@@ -424,10 +439,11 @@ export function PosView({
           </div>
         </header>
 
-        {/* Lantai tinggi: tanpa ini daftar item bisa menyusut jadi ~200 px
-            saat blok pembayaran panjang, dan pesanan yang ditagih jadi tidak
-            kelihatan. */}
-        <div class="scrollbar-thin min-h-44 flex-1 overflow-y-auto px-4 py-3">
+        {/* Ponsel: daftar ini tinggi alami dan seluruh panel yang menggulir,
+            jadi pesanan yang ditagih tidak pernah tersembunyi. Layar lebar:
+            daftar yang menggulir sendiri sementara blok bayar tetap di bawah.
+            `min-h-40` menjaga daftar tidak pernah menyusut jadi nol. */}
+        <div class="scrollbar-thin min-h-40 px-4 py-3 lg:flex-1 lg:overflow-y-auto">
           {keranjang.length === 0 ? (
             <div class="flex h-full flex-col items-center justify-center gap-2 py-10 text-center text-ink-400">
               <Icon name="cart" size={32} strokeWidth={1.4} />
@@ -477,7 +493,7 @@ export function PosView({
 
         {/* Rincian & bayar ------------------------------------------------ */}
         {total ? (
-          <div class="border-t border-ink-200 px-4 py-3">
+          <div class="shrink-0 border-t border-ink-200 px-4 py-3">
             <dl class="space-y-1 text-sm">
               <Baris label={`Subtotal (${jumlah} item)`} value={total.subtotal} />
               {total.discountAmount > 0 ? (
