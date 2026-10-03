@@ -88,6 +88,9 @@ export function PosView({
   const [cari, setCari] = useState('');
   const [diskon, setDiskon] = useState<Discount>({ type: 'none', value: 0 });
   const [diskonTerbuka, setDiskonTerbuka] = useState(false);
+  // Di ponsel tidak ada ruang untuk dua kolom sekaligus. Kisi menu dapat
+  // seluruh lebar, keranjang jadi panel bawah yang digeser naik.
+  const [keranjangTerbuka, setKeranjangTerbuka] = useState(false);
   const [metode, setMetode] = useState<MetodeKasir>('cash');
   const [tunai, setTunai] = useState(0);
   const [sibuk, setSibuk] = useState(false);
@@ -225,11 +228,13 @@ export function PosView({
   /* --- Render ----------------------------------------------------------- */
 
   return (
-    <div class="flex h-[calc(100dvh-56px)] gap-4 p-4">
+    // Ponsel: satu kolom, kisi menu di atas lalu bilah keranjang di bawah.
+    // Layar lebar: dua kolom bersebelahan seperti semula.
+    <div class="flex h-[calc(100dvh-56px)] flex-col gap-3 p-4 lg:flex-row lg:gap-4">
       {/* ================================================================ */}
       {/* Menu                                                             */}
       {/* ================================================================ */}
-      <section class="flex min-w-0 flex-1 flex-col gap-3">
+      <section class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
         <div class="flex items-center gap-2">
           <div class="relative flex-1">
             <Icon
@@ -282,9 +287,12 @@ export function PosView({
             // berguna daripada kartu kecil yang rapat.
             <div
               class={
+                // Di bawah `lg` kisi menu dapat seluruh lebar layar, jadi
+                // kolomnya bisa lebih banyak. Di `lg` panel keranjang kembali
+                // mengambil 380 px, jadi kolomnya dikurangi lagi.
                 tataLetakTema(theme.value) === 'fokus'
-                  ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'
-                  : 'grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'
+                  ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3'
+                  : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4'
               }
             >
               {daftar.map((m) => {
@@ -338,22 +346,88 @@ export function PosView({
       </section>
 
       {/* ================================================================ */}
+      {/* Bilah keranjang — ponsel saja                                     */}
+      {/* ================================================================ */}
+      <button
+        type="button"
+        onClick={() => setKeranjangTerbuka(true)}
+        class="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-ink-200 bg-surface px-4 py-3 text-left lg:hidden"
+      >
+        <span class="flex items-center gap-2.5">
+          <span class="relative flex h-9 w-9 items-center justify-center rounded-lg bg-ink-100 text-ink-700">
+            <Icon name="cart" size={18} />
+            {jumlah > 0 ? (
+              <span class="num absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-600 px-1 text-[11px] font-bold text-white">
+                {jumlah}
+              </span>
+            ) : null}
+          </span>
+          <span class="flex flex-col">
+            <span class="text-sm font-bold text-ink-900">
+              {jumlah > 0 ? `${jumlah} item` : 'Keranjang kosong'}
+            </span>
+            <span class="text-xs text-ink-500">
+              {total ? formatRupiah(total.total) : 'Ketuk menu untuk menambah'}
+            </span>
+          </span>
+        </span>
+        <span class="text-xs font-bold text-brand-700">
+          {jumlah > 0 ? 'Lihat pesanan' : ''}
+        </span>
+      </button>
+
+      {/* Latar gelap saat panel keranjang terbuka — ponsel saja. */}
+      {keranjangTerbuka ? (
+        <div
+          class="fixed inset-0 z-30 bg-ink-950/60 lg:hidden"
+          onClick={() => setKeranjangTerbuka(false)}
+        />
+      ) : null}
+
+      {/* ================================================================ */}
       {/* Keranjang                                                        */}
       {/* ================================================================ */}
-      <aside class="flex w-[380px] shrink-0 flex-col rounded-xl border border-ink-200 bg-surface">
+      <aside
+        class={[
+          'flex flex-col border-ink-200 bg-surface',
+          // Ponsel: panel bawah yang digeser naik. Dipatok `w-[380px]` seperti
+          // sebelumnya, panel ini menelan seluruh lebar layar sempit dan kisi
+          // menu yang menyusut jadi nol.
+          // Tingginya 92dvh, bukan 85dvh: blok pembayaran saja butuh ~440 px,
+          // jadi dengan 85dvh daftar item cuma kebagian ~205 px dan langsung
+          // terpotong. Kasir lebih perlu melihat apa yang ditagih.
+          'fixed inset-x-0 bottom-0 z-40 max-h-[92dvh] rounded-t-2xl border-t shadow-2xl transition-transform duration-200',
+          keranjangTerbuka ? 'translate-y-0' : 'translate-y-full',
+          // Layar lebar: kolom tetap di sisi kanan, selalu terlihat.
+          'lg:static lg:z-auto lg:max-h-none lg:w-[380px] lg:shrink-0 lg:translate-y-0 lg:rounded-xl lg:border lg:shadow-none',
+        ].join(' ')}
+      >
         <header class="flex items-center justify-between border-b border-ink-200 px-4 py-3">
           <div>
             <h2 class="font-bold text-ink-900">Pesanan</h2>
             <p class="text-xs text-ink-500">Kasir: {cashierName || '—'}</p>
           </div>
-          {keranjang.length > 0 ? (
-            <Button variant="ghost" size="sm" icon="trash" onClick={bersihkan}>
-              Kosongkan
-            </Button>
-          ) : null}
+          <div class="flex items-center gap-1">
+            {keranjang.length > 0 ? (
+              <Button variant="ghost" size="sm" icon="trash" onClick={bersihkan}>
+                Kosongkan
+              </Button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setKeranjangTerbuka(false)}
+              class="flex h-9 w-9 items-center justify-center rounded-md text-ink-600 hover:bg-ink-100 lg:hidden"
+              aria-label="Tutup keranjang"
+            >
+              <Icon name="x" size={18} />
+            </button>
+          </div>
         </header>
 
-        <div class="scrollbar-thin flex-1 overflow-y-auto px-4 py-3">
+        {/* Lantai tinggi: tanpa ini daftar item bisa menyusut jadi ~200 px
+            saat blok pembayaran panjang, dan pesanan yang ditagih jadi tidak
+            kelihatan. */}
+        <div class="scrollbar-thin min-h-44 flex-1 overflow-y-auto px-4 py-3">
           {keranjang.length === 0 ? (
             <div class="flex h-full flex-col items-center justify-center gap-2 py-10 text-center text-ink-400">
               <Icon name="cart" size={32} strokeWidth={1.4} />
@@ -645,7 +719,7 @@ function HasilOrder({
   const lunas = order.payment.status === 'paid';
 
   return (
-    <div class="fixed inset-0 z-40 flex items-center justify-center bg-ink-950/60 p-4" onClick={onTutup}>
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 p-4" onClick={onTutup}>
       <Card class="anim-pop max-h-[92dvh] w-full max-w-md overflow-y-auto" onClick={(e: Event) => e.stopPropagation()}>
         <div class="text-center">
           <div
