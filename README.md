@@ -6,7 +6,7 @@
 
 **POS + self-order untuk kafe & resto. Satu basis kode, lima layar, realtime sungguhan.**
 
-[![Tes](https://img.shields.io/badge/tes-267%20lolos-16a34a?style=flat-square)](src/domain)
+[![Tes](https://img.shields.io/badge/tes-282%20lolos-16a34a?style=flat-square)](src/domain)
 [![Bundle](https://img.shields.io/badge/bundle-72%2C3%20KB%20gzip-2563eb?style=flat-square)](#-ukuran-yang-dikirim-ke-pengguna)
 [![Tumpukan](https://img.shields.io/badge/Preact%20%2B%20Tailwind%204%20%2B%20Vite-0ea5e9?style=flat-square)](#-teknologi-dan-alasannya)
 [![Lisensi](https://img.shields.io/badge/lisensi-MIT-64748b?style=flat-square)](LICENSE)
@@ -195,7 +195,7 @@ Setelah itu, hal-hal yang tadinya tidak mungkin menjadi mungkin: harga dan stok 
 ### Perintah lain
 
 ```bash
-npm run test        # 267 tes, tanpa kerangka pengujian tambahan
+npm run test        # 282 tes, tanpa kerangka pengujian tambahan
 npm run typecheck   # pemeriksaan tipe
 npm run check       # keduanya sekaligus
 npm run build       # build produksi ke dist/
@@ -210,7 +210,7 @@ npm --prefix supabase/uji install
 
 npm run db:parse    # periksa kedua berkas SQL dengan parser PostgreSQL asli
 npm run db:jalan    # terapkan schema.sql + seed.sql ke Postgres sungguhan
-npm run db:uji      # 81 uji fungsional: harga, stok, mesin keadaan, peran, izin
+npm run db:uji      # 82 uji fungsional: harga, stok, mesin keadaan, peran, izin
 ```
 
 Semuanya butuh Postgres yang bisa dihubungi; arahnya diatur lewat `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`. `db:siapkan` — yang menjatuhkan database — sengaja tidak didaftarkan di sini; ia menolak berjalan kalau hostnya bukan mesin lokal.
@@ -381,13 +381,14 @@ Satu berkas font masih memakan hampir 40% dari total. Memangkasnya lewat subsett
 npm run test
 ```
 
-**267 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
+**282 tes, semuanya lolos.** Yang diuji adalah aturan yang mahal kalau salah:
 
 - Perhitungan uang: pajak, pembulatan, kode unik, ringkasan laporan
 - Kode unik hanya diberikan untuk QRIS dan transfer — tunai tidak
 - Hanya order lunas yang masuk omzet; order batal tidak pernah masuk, meski sudah dibayar
 - Mesin keadaan pesanan: transisi sah, transisi terlarang, aturan pembatalan
 - Penomoran antrian dan pemanggilan ulang
+- Tema: penguraian nilai yang tidak dikenal, dan tata letak mana yang dipakai tiap tema
 - Geometri QR: zona tenang, ukuran modul, hasil yang bisa dipindai
 - Payload QRIS dinamis: nominal tersisip, pemeriksaan jumlah
 - Rentang tanggal dan format waktu
@@ -428,11 +429,12 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 - [x] Ekspor laporan ke CSV dan Excel
 - [x] Mode luring dengan antrean tulis
 - [x] Backend Supabase: skema, seed, adapter, dan RLS
-- [x] 267 tes, pemeriksaan tipe bersih
+- [x] Tiga tema tampilan (Fokus / Gelap / Terang) yang mengganti warna **dan** tata letak, dipilih per perangkat
+- [x] 282 tes, pemeriksaan tipe bersih
 
 **Berikutnya**
 
-- [ ] **Uji backend terhadap proyek Supabase sungguhan.** Skema dan seed sudah dijalankan terhadap Postgres 18.4 sungguhan (97 pernyataan, 81 uji fungsional lolos), tetapi belum terhadap proyek Supabase — Realtime, PostgREST, dan peran bawaan Supabase belum tersentuh — lihat "Batasan yang jujur" di bawah
+- [ ] **Uji backend terhadap proyek Supabase sungguhan.** Skema dan seed sudah dijalankan terhadap Postgres 18.4 sungguhan (97 pernyataan, 82 uji fungsional lolos), tetapi belum terhadap proyek Supabase — Realtime, PostgREST, dan peran bawaan Supabase belum tersentuh — lihat "Batasan yang jujur" di bawah
 - [ ] Pencocokan pembayaran masuk dari penyedia QRIS
 - [ ] Subset font agar halaman pelanggan turun dari 71,1 KB
 - [ ] Webhook QRIS supaya pembayaran tercatat sendiri tanpa kasir menekan "Lunas"
@@ -441,7 +443,7 @@ Beberapa tes menjaga kesalahan yang tidak terlihat: berkas Excel yang tetap "ber
 
 Agar tidak ada salah paham sebelum Anda memakainya:
 
-- **Backend Supabase sudah dijalankan terhadap Postgres sungguhan, tapi belum terhadap proyek Supabase.** Skema dan seed dijalankan pada Postgres 18.4 yang berjalan di mesin ini: 97 pernyataan mendarat bersih, lalu 81 uji fungsional memanggil fungsinya satu per satu — membuat order, memotong stok, menolak transisi status yang tidak sah, mengembalikan stok saat dibatalkan, menolak pengunjung anonim. Uji itu menemukan lima cacat yang tidak terlihat oleh parser mana pun, termasuk satu yang membuat **setiap** `create_order` gagal. Yang **belum** terbukti: perilakunya di dalam Supabase sendiri — Realtime, PostgREST, peran bawaan Supabase, dan jalur jaringan dari peramban belum tersentuh sama sekali. Perlakukan ini sebagai backend yang sudah terbukti logikanya, bukan yang sudah terbukti di produksi.
+- **Backend Supabase sudah dijalankan terhadap Postgres sungguhan, tapi belum terhadap proyek Supabase.** Skema dan seed dijalankan pada Postgres 18.4 yang berjalan di mesin ini: 97 pernyataan mendarat bersih, lalu 82 uji fungsional memanggil fungsinya satu per satu — membuat order, memotong stok, menolak transisi status yang tidak sah, mengembalikan stok saat dibatalkan, menolak pengunjung anonim. Uji itu menemukan lima cacat yang tidak terlihat oleh parser mana pun, termasuk satu yang membuat **setiap** `create_order` gagal. Yang **belum** terbukti: perilakunya di dalam Supabase sendiri — Realtime, PostgREST, peran bawaan Supabase, dan jalur jaringan dari peramban belum tersentuh sama sekali. Perlakukan ini sebagai backend yang sudah terbukti logikanya, bukan yang sudah terbukti di produksi.
 - **Mode demo tetap punya batasan lamanya.** Tanpa `VITE_DATA_ADAPTER=supabase`, data masih hidup di `localStorage` peramban: satu perangkat satu salinan, dan yang menang saat bentrok adalah yang terakhir dikirim. Harga juga masih dihitung di peramban. Semua itu hilang begitu backend dinyalakan.
 - **Server realtime-nya masih perlu dijalankan sendiri** untuk mode mock. `npm run realtime` menyalakannya di port 8787; kalau tidak ada, aplikasi turun ke jalur antar-tab dan tetap jalan. Di adapter Supabase ini tidak berlaku — Realtime-nya ditangani Supabase.
 - **Akun demo memakai kredensial yang terbuka di repositori ini.** Di Supabase, sandi dan PIN-nya tersimpan sebagai hash bcrypt dan verifikasinya di server, tapi selama Anda belum menggantinya, siapa pun yang pernah membaca README ini tahu cara masuk sebagai pemilik. Cara menggantinya ada di komentar bagian "Akun demo" di `supabase/seed.sql`.
